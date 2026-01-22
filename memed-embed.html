@@ -25,5 +25,20 @@
       });
     </script>
 
+    <script>
+    MdSinapsePrescricao.event.add("core:moduleInit", function (module) {
+      if (module.name === "plataforma.prescricao") {
+  
+        // 🔹 Remove header e footer da plataforma
+        MdHub.command.send("plataforma.prescricao", "removeHeader");
+        MdHub.command.send("plataforma.prescricao", "removeFooter");
+  
+        // 🔹 Abre o módulo em modo focado
+        MdHub.module.show("plataforma.prescricao");
+      }
+    });
+  </script>
+
+
   </body>
 </html>
