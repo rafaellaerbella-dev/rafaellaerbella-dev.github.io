@@ -1,29 +1,61 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
-  <head>
-    <meta charset="utf-8" />
-    <title>Memed – Homologação</title>
-  </head>
+<head>
+  <meta charset="utf-8" />
+  <title>Memed – Integrada ao Ninsaúde</title>
+</head>
 
-  <body>
+<body>
 
-    <script
-      src="https://integrations.memed.com.br/modulos/plataforma.sinapse-prescricao/build/sinapse-prescricao.min.js"
-      data-token="eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.WzkwMzg3LCIwYTZiZTgwM2U1YTcwNTg5NDJmZGQ2NmU3MzU2YWM1MSIsIjIwMjYtMDEtMjIiLCJzaW5hcHNlLnByZXNjcmljYW8iLCJwYXJ0bmVyLjMuODU1MjAiXQ.DbTqxosooGFCD6OhWW_ClktXPZN4B1Ecnev4OsavoXs">
-    </script>
+  <!-- Script da Memed (HML) -->
+  <script
+    src="https://integrations.memed.com.br/modulos/plataforma.sinapse-prescricao/build/sinapse-prescricao.min.js"
+    data-token="eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.WzkwMzg3LCIwYTZiZTgwM2U1YTcwNTg5NDJmZGQ2NmU3MzU2YWM1MSIsIjIwMjYtMDEtMjIiLCJzaW5hcHNlLnByZXNjcmljYW8iLCJwYXJ0bmVyLjMuODU1MjAiXQ.DbTqxosooGFCD6OhWW_ClktXPZN4B1Ecnev4OsavoXs">
+  </script>
 
-    <script>
-      MdSinapsePrescricao.event.add("core:moduleInit", function (module) {
-        if (module.name === "plataforma.prescricao") {
+  <script>
+    let memedReady = false;
+    let pacientePendente = null;
 
-          // Força abrir a prescrição
-          MdHub.command.send("plataforma.prescricao", "openPrescription");
+    // 1) Escuta mensagens vindas do Ninsaúde
+    window.addEventListener("message", function (event) {
+      // 🔐 Segurança: ajuste o origin quando souber o domínio exato do Ninsaúde
+      // if (event.origin !== "https://clinic.ninsaude.com.br") return;
 
-          // Garante foco no módulo
-          MdHub.module.show("plataforma.prescricao");
-        }
+      if (!event.data || event.data.type !== "SET_PACIENTE_NINSAUDE") return;
+
+      pacientePendente = event.data.payload;
+
+      if (memedReady) {
+        setarPacienteEabrir(pacientePendente);
+      }
+    });
+
+    // 2) Quando a Memed inicializar, marca como pronta
+    MdSinapsePrescricao.event.add("core:moduleInit", function (module) {
+      if (module.name !== "plataforma.prescricao") return;
+
+      memedReady = true;
+
+      if (pacientePendente) {
+        setarPacienteEabrir(pacientePendente);
+      }
+    });
+
+    // 3) Função que integra paciente → prescrição
+    function setarPacienteEabrir(p) {
+      MdHub.command.send("plataforma.prescricao", "setPaciente", {
+        nome: p.nome,
+        sexo: p.sexo,
+        dataNascimento: p.dataNascimento, // YYYY-MM-DD
+        documento: p.cpf,
+        external_id: p.id
       });
-    </script>
 
-  </body>
+      MdHub.command.send("plataforma.prescricao", "openPrescription");
+      MdHub.module.show("plataforma.prescricao");
+    }
+  </script>
+
+</body>
 </html>
