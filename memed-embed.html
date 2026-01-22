@@ -1,37 +1,36 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
-  <head>
-    <meta charset="utf-8" />
-    <title>Memed – Homologação</title>
-  </head>
+<head>
+  <meta charset="utf-8" />
+  <title>Memed – Homologação</title>
 
-  <body>
+  <style>
+    header, footer, .home-guides, .initial-guides {
+      display: none !important;
+    }
+    html, body { height: 100%; margin: 0; }
+  </style>
+</head>
 
-    <h2>Prescrição – Memed (HML)</h2>
+<body>
 
-    <!-- Script da Memed (homologação) -->
-    <script
-      src="https://integrations.memed.com.br/modulos/plataforma.sinapse-prescricao/build/sinapse-prescricao.min.js"
-      data-token="SEU_TOKEN_AQUI">
-    </script>
-    
-    <script>
-      MdSinapsePrescricao.event.add("core:moduleInit", function (module) {
-        if (module.name === "plataforma.prescricao") {
-    
-          MdHub.command.send("plataforma.prescricao", "setPaciente", {
-            nome: "Paciente Teste",
-            sexo: "F",
-            dataNascimento: "1990-01-01"
-          });
-    
-          MdHub.command.send("plataforma.prescricao", "removeHeader");
-          MdHub.command.send("plataforma.prescricao", "removeFooter");
-    
-          MdHub.module.show("plataforma.prescricao");
-        }
-      });
-    </script>
+  <script
+    src="https://integrations.memed.com.br/modulos/plataforma.sinapse-prescricao/build/sinapse-prescricao.min.js"
+    data-token="SEU_TOKEN_AQUI">
+  </script>
 
-  </body>
+  <script>
+    MdSinapsePrescricao.event.add("core:moduleInit", function (module) {
+      if (module.name === "plataforma.prescricao") {
+        MdHub.command.send("plataforma.prescricao", "setPaciente", {
+          nome: "Paciente Teste",
+          sexo: "F",
+          dataNascimento: "1990-01-01"
+        });
+        MdHub.module.show("plataforma.prescricao");
+      }
+    });
+  </script>
+
+</body>
 </html>
