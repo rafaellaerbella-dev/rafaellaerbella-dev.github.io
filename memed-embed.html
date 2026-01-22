@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
   <meta charset="utf-8" />
-  <title>Memed – Integrada ao Ninsaúde</title>
+  <title>Memed integrada ao Ninsaúde</title>
 </head>
 
 <body>
@@ -15,47 +15,100 @@
 
   <script>
     let memedReady = false;
-    let pacientePendente = null;
+    let pacienteRecebido = null;
 
-    // 1) Escuta mensagens vindas do Ninsaúde
+    // 🔹 Recebe paciente do Ninsaúde (via postMessage)
     window.addEventListener("message", function (event) {
-      // 🔐 Segurança: ajuste o origin quando souber o domínio exato do Ninsaúde
+      // Em produção, restringir o origin:
       // if (event.origin !== "https://clinic.ninsaude.com.br") return;
 
-      if (!event.data || event.data.type !== "SET_PACIENTE_NINSAUDE") return;
+      if (!event.data || event.data.type !== "PACIENTE_NINSAUDE") return;
 
-      pacientePendente = event.data.payload;
+      pacienteRecebido = event.data.payload;
 
       if (memedReady) {
-        setarPacienteEabrir(pacientePendente);
+        integrarPaciente(pacienteRecebido);
       }
     });
 
-    // 2) Quando a Memed inicializar, marca como pronta
+    // 🔹 Memed pronta
     MdSinapsePrescricao.event.add("core:moduleInit", function (module) {
       if (module.name !== "plataforma.prescricao") return;
 
       memedReady = true;
 
-      if (pacientePendente) {
-        setarPacienteEabrir(pacientePendente);
+      if (pacienteRecebido) {
+        integrarPaciente(pacienteRecebido);
       }
     });
 
-    // 3) Função que integra paciente → prescrição
-    function setarPacienteEabrir(p) {
+    // 🔹 Integra paciente + endereço
+    function integrarPaciente(p) {
+      // 1️⃣ Identidade do paciente
       MdHub.command.send("plataforma.prescricao", "setPaciente", {
         nome: p.nome,
         sexo: p.sexo,
-        dataNascimento: p.dataNascimento, // YYYY-MM-DD
+        dataNascimento: p.dataNascimento,
         documento: p.cpf,
         external_id: p.id
       });
 
+      // 2️⃣ Endereço (OBRIGATÓRIO para controlados)
+      if (p.endereco) {
+        MdHub.command.send("plataforma.prescricao", "setEnderecoPaciente", {
+          logradouro: p.endereco.logradouro,
+          numero: p.endereco.numero,
+          complemento: p.endereco.complemento,
+          bairro: p.endereco.bairro,
+          cidade: p.endereco.cidade,
+          uf: p.endereco.uf,
+          cep: p.endereco.cep
+        });
+      }
+
+      // 3️⃣ Abre direto a prescrição
       MdHub.command.send("plataforma.prescricao", "openPrescription");
       MdHub.module.show("plataforma.prescricao");
     }
   </script>
+
+  <script>
+  // 🔔 Escuta eventos da Memed
+  MdHub.event.add("prescription.created", function (payload) {
+    console.log("Prescrição criada", payload);
+
+    // Exemplo: avisar o Ninsaúde
+    notificarNinsaude("created", payload);
+  });
+
+  MdHub.event.add("prescription.printed", function (payload) {
+    console.log("Prescrição impressa", payload);
+
+    notificarNinsaude("printed", payload);
+  });
+
+  MdHub.event.add("prescription.deleted", function (payload) {
+    console.log("Prescrição excluída", payload);
+
+    notificarNinsaude("deleted", payload);
+  });
+
+  function notificarNinsaude(tipo, payload) {
+    // aqui você decide:
+    // - postMessage
+    // - fetch para backend
+    // - extensão
+    window.parent.postMessage(
+      {
+        type: "MEMED_PRESCRIPTION_EVENT",
+        action: tipo,
+        data: payload
+      },
+      "*"
+    );
+  }
+</script>
+
 
 </body>
 </html>
