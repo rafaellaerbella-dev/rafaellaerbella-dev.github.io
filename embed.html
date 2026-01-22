@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Memed – Prescrição</title>
+
+    <style>
+      html, body {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+        width: 100%;
+        font-family: sans-serif;
+      }
+
+      #memed-container {
+        height: 100vh;
+        width: 100vw;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div id="memed-container"></div>
+
+    <!-- SCRIPT DA MEMED (EMBED) -->
+    <script
+      type="text/javascript"
+      src="https://integrations.memed.com.br/modulos/plataforma.sinapse-prescricao/build/sinapse-prescricao.min.js"
+      data-token="COLE_AQUI_O_TOKEN_DO_PRESCRITOR">
+    </script>
+
+    <script>
+      // Aguarda o módulo da Memed inicializar
+      MdSinapsePrescricao.event.add("core:moduleInit", function (module) {
+        console.log("Módulo inicializado:", module.name);
+
+        if (module.name === "plataforma.prescricao") {
+          // Abre a tela de prescrição
+          MdHub.module.show("plataforma.prescricao");
+        }
+      });
+    </script>
+  </body>
+</html>
