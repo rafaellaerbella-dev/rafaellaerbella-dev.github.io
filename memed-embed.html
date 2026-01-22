@@ -3,13 +3,21 @@
 <head>
   <meta charset="utf-8" />
   <title>Memed integrada ao Ninsaúde</title>
-</head>
 
-<body>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+    }
 
-  <button
-    id="btnSimularPaciente"
-    style="
+    #memed-container {
+      width: 100%;
+      height: 100%;
+      min-height: 600px;
+    }
+
+    #btnSimularPaciente {
       position: fixed;
       top: 16px;
       right: 16px;
@@ -17,10 +25,18 @@
       padding: 10px 14px;
       font-size: 14px;
       cursor: pointer;
-    "
-  >
+    }
+  </style>
+</head>
+
+<body>
+
+  <button id="btnSimularPaciente">
     Simular paciente do Ninsaúde
   </button>
+
+  <!-- 🔹 CONTAINER DA MEMED -->
+  <div id="memed-container"></div>
 
   <!-- Script da Memed -->
   <script
@@ -30,86 +46,62 @@
 
   <script>
     let pacienteRecebido = null;
-    let integrado = false;
+    let memedPronta = false;
 
-    // 🔹 Recebe paciente (real ou simulado)
-    window.addEventListener("message", function (event) {
-      if (!event.data || event.data.type !== "PACIENTE_NINSAUDE") return;
-      pacienteRecebido = event.data.payload;
-    });
-
-    // 🔹 Espera o MdHub existir
+    // 1️⃣ Espera o MdHub existir
     const waitForMdHub = setInterval(() => {
-      if (!window.MdHub || !window.MdHub.command) return;
+      if (!window.MdHub || !window.MdHub.module) return;
 
       clearInterval(waitForMdHub);
+      memedPronta = true;
 
-      MdHub.event.add("core:moduleInit", function (module) {
-        if (module.name !== "plataforma.prescricao") return;
-        if (integrado) return;
-
-        integrado = true;
-
-        if (!pacienteRecebido) {
-          console.warn("Paciente ainda não recebido do Ninsaúde");
-          return;
-        }
-
-        integrarPaciente(pacienteRecebido);
-      });
+      // 🔹 Mostra o módulo MESMO SEM PACIENTE
+      MdHub.module.show("plataforma.prescricao");
     }, 200);
 
-    // 🔹 Integra paciente + endereço
-    function integrarPaciente(p) {
-      MdHub.command.send("plataforma.prescricao", "setPaciente", {
-        nome: p.nome,
-        sexo: p.sexo,
-        dataNascimento: p.dataNascimento,
-        documento: p.cpf,
-        external_id: p.id
-      });
-
-      if (p.endereco) {
-        MdHub.command.send("plataforma.prescricao", "setEnderecoPaciente", {
-          logradouro: p.endereco.logradouro,
-          numero: p.endereco.numero,
-          complemento: p.endereco.complemento,
-          bairro: p.endereco.bairro,
-          cidade: p.endereco.cidade,
-          uf: p.endereco.uf,
-          cep: p.endereco.cep
-        });
-      }
-
-      MdHub.command.send("plataforma.prescricao", "openPrescription");
-      MdHub.module.show("plataforma.prescricao");
-    }
-
-    // 🔹 BOTÃO DE SIMULAÇÃO (substitui console)
+    // 2️⃣ Botão de simulação (substitui console)
     document
       .getElementById("btnSimularPaciente")
       .addEventListener("click", function () {
-        window.postMessage(
-          {
-            type: "PACIENTE_NINSAUDE",
-            payload: {
-              id: "ns-simulado-1",
-              nome: "Maria da Silva",
-              sexo: "F",
-              dataNascimento: "1985-07-22",
-              cpf: "12345678900",
-              endereco: {
-                logradouro: "Rua das Flores",
-                numero: "123",
-                bairro: "Centro",
-                cidade: "São Paulo",
-                uf: "SP",
-                cep: "01001000"
-              }
-            }
-          },
-          "*"
-        );
+        if (!memedPronta) return;
+
+        const paciente = {
+          id: "ns-simulado-1",
+          nome: "Maria da Silva",
+          sexo: "F",
+          dataNascimento: "1985-07-22",
+          cpf: "12345678900",
+          endereco: {
+            logradouro: "Rua das Flores",
+            numero: "123",
+            bairro: "Centro",
+            cidade: "São Paulo",
+            uf: "SP",
+            cep: "01001000"
+          }
+        };
+
+        // Identidade
+        MdHub.command.send("plataforma.prescricao", "setPaciente", {
+          nome: paciente.nome,
+          sexo: paciente.sexo,
+          dataNascimento: paciente.dataNascimento,
+          documento: paciente.cpf,
+          external_id: paciente.id
+        });
+
+        // Endereço (controlados)
+        MdHub.command.send("plataforma.prescricao", "setEnderecoPaciente", {
+          logradouro: paciente.endereco.logradouro,
+          numero: paciente.endereco.numero,
+          bairro: paciente.endereco.bairro,
+          cidade: paciente.endereco.cidade,
+          uf: paciente.endereco.uf,
+          cep: paciente.endereco.cep
+        });
+
+        // Abre prescrição
+        MdHub.command.send("plataforma.prescricao", "openPrescription");
       });
   </script>
 
