@@ -140,7 +140,31 @@
           '\n❌ Script Memed NÃO carregou';
       "
       ></script>
-  
+
+      <script>
+        function findHub(obj) {
+          try {
+            const candidates = [
+              obj?.hub,
+              obj?.Hub,
+              obj?.mdHub,
+              obj?.MdHub,
+              obj?.mdhub,
+              obj?.runtime?.hub,
+              obj?.runtime?.MdHub,
+              obj?.runtime?.mdHub,
+              obj?.runtime?.core?.hub,
+              obj?.core?.hub,
+              obj?.core?.MdHub
+            ].filter(Boolean);
+      
+            return candidates[0] || null;
+          } catch {
+            return null;
+          }
+        }
+      </script>
+    
       <script>
         (function () {
           const statusEl = document.getElementById("status");
