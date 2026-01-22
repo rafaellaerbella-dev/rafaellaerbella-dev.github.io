@@ -139,6 +139,25 @@
         document.getElementById('log').textContent +=
           '\n❌ Script Memed NÃO carregou';
       "
-    ></script>
+      ></script>
+  
+      <script>
+    (function () {
+      const keys = Object.keys(window).filter(k =>
+        k.toLowerCase().includes("md") ||
+        k.toLowerCase().includes("sinapse") ||
+        k.toLowerCase().includes("memed") ||
+        k.toLowerCase().includes("hub")
+      );
+  
+      console.log("🔎 globais possíveis:", keys);
+  
+      // também loga especificamente alguns nomes comuns
+      console.log("window.MdHub =", window.MdHub);
+      console.log("window.MdSinapsePrescricao =", window.MdSinapsePrescricao);
+      console.log("window.MdSinapse =", window.MdSinapse);
+    })();
+  </script>
+
   </body>
 </html>
