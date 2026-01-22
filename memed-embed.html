@@ -3,6 +3,13 @@
 <head>
   <meta charset="utf-8" />
   <title>Memed – Homologação</title>
+
+  <style>
+    header, footer, .home-guides, .initial-guides {
+      display: none !important;
+    }
+    html, body { height: 100%; margin: 0; }
+  </style>
 </head>
 
 <body>
@@ -15,15 +22,11 @@
   <script>
     MdSinapsePrescricao.event.add("core:moduleInit", function (module) {
       if (module.name === "plataforma.prescricao") {
-
-        // setar paciente é OK
         MdHub.command.send("plataforma.prescricao", "setPaciente", {
           nome: "Paciente Teste",
           sexo: "F",
           dataNascimento: "1990-01-01"
         });
-
-        // abrir módulo
         MdHub.module.show("plataforma.prescricao");
       }
     });
