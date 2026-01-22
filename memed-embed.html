@@ -3,26 +3,27 @@
   <head>
     <meta charset="utf-8" />
     <title>Memed – Homologação</title>
-
-    <!-- Importante: NÃO colocar CSS aqui por enquanto -->
   </head>
 
   <body>
 
-    <!-- Script oficial da Memed (homologação) -->
     <script
       src="https://integrations.memed.com.br/modulos/plataforma.sinapse-prescricao/build/sinapse-prescricao.min.js"
       data-token="eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.WzkwMzg3LCIwYTZiZTgwM2U1YTcwNTg5NDJmZGQ2NmU3MzU2YWM1MSIsIjIwMjYtMDEtMjIiLCJzaW5hcHNlLnByZXNjcmljYW8iLCJwYXJ0bmVyLjMuODU1MjAiXQ.DbTqxosooGFCD6OhWW_ClktXPZN4B1Ecnev4OsavoXs">
     </script>
 
-   <script>
-    MdSinapsePrescricao.event.add("core:moduleInit", function (module) {
-      if (module.name === "plataforma.prescricao") {
-        MdHub.command.send("plataforma.prescricao", "openPrescription");
-        MdHub.module.show("plataforma.prescricao");
-      }
-    });
-  </script>
+    <script>
+      MdSinapsePrescricao.event.add("core:moduleInit", function (module) {
+        if (module.name === "plataforma.prescricao") {
+
+          // Força abrir a prescrição
+          MdHub.command.send("plataforma.prescricao", "openPrescription");
+
+          // Garante foco no módulo
+          MdHub.module.show("plataforma.prescricao");
+        }
+      });
+    </script>
 
   </body>
 </html>
