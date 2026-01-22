@@ -12,33 +12,26 @@
     <!-- Script da Memed (homologação) -->
     <script
       src="https://integrations.memed.com.br/modulos/plataforma.sinapse-prescricao/build/sinapse-prescricao.min.js"
-      data-token="eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.WzkwMzg3LCIwYTZiZTgwM2U1YTcwNTg5NDJmZGQ2NmU3MzU2YWM1MSIsIjIwMjYtMDEtMjIiLCJzaW5hcHNlLnByZXNjcmljYW8iLCJwYXJ0bmVyLjMuODU1MjAiXQ.DbTqxosooGFCD6OhWW_ClktXPZN4B1Ecnev4OsavoXs">
+      data-token="SEU_TOKEN_AQUI">
     </script>
-
+    
     <script>
-      // Espera o módulo ficar pronto
       MdSinapsePrescricao.event.add("core:moduleInit", function (module) {
         if (module.name === "plataforma.prescricao") {
-          console.log("Memed pronta");
+    
+          MdHub.command.send("plataforma.prescricao", "setPaciente", {
+            nome: "Paciente Teste",
+            sexo: "F",
+            dataNascimento: "1990-01-01"
+          });
+    
+          MdHub.command.send("plataforma.prescricao", "removeHeader");
+          MdHub.command.send("plataforma.prescricao", "removeFooter");
+    
           MdHub.module.show("plataforma.prescricao");
         }
       });
     </script>
-
-    <script>
-    MdSinapsePrescricao.event.add("core:moduleInit", function (module) {
-      if (module.name === "plataforma.prescricao") {
-  
-        // 🔹 Remove header e footer da plataforma
-        MdHub.command.send("plataforma.prescricao", "removeHeader");
-        MdHub.command.send("plataforma.prescricao", "removeFooter");
-  
-        // 🔹 Abre o módulo em modo focado
-        MdHub.module.show("plataforma.prescricao");
-      }
-    });
-  </script>
-
 
   </body>
 </html>
