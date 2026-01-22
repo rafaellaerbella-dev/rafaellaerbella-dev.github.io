@@ -1,84 +1,144 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
-<head>
-  <meta charset="UTF-8" />
-  <title>Memed – Prescrição (debug)</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <style>
-    html, body { margin:0; padding:0; height:100%; width:100%; }
-    #bar { position: fixed; top:0; left:0; right:0; z-index:99999; background:#111; color:#fff; padding:10px 12px; font-size:12px; }
-    #memed-container { position: fixed; top: 110px; left:0; right:0; bottom:0; }
-    .ok { color:#7CFC00; }
-    .bad { color:#ff6b6b; }
-    button { margin-left:8px; }
-  </style>
-</head>
-<body>
-  <div id="bar">
-    <div><b>Status:</b> <span id="status">carregando…</span>
-      <button id="clear">Limpar</button>
-    </div>
-    <div id="log"></div>
-  </div>
+  <head>
+    <meta charset="UTF-8" />
 
-<div id="memed-container"></div>
+    <title>Memed – Prescrição (debug)</title>
 
-  <script>
-    const statusEl = document.getElementById("status");
-    const logEl = document.getElementById("log");
-    const log = (...args) => {
-      const line = args.map(a => typeof a === "string" ? a : JSON.stringify(a, null, 2)).join(" ");
-      logEl.textContent += (logEl.textContent ? "\n" : "") + line;
-      console.log(...args);
-    };
-    document.getElementById("clear").onclick = () => (logEl.textContent = "");
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    window.addEventListener("error", (e) => {
-      log("❌ window.error:", e.message, " @", e.filename + ":" + e.lineno + ":" + e.colno);
-    });
-    window.addEventListener("unhandledrejection", (e) => {
-      log("❌ unhandledrejection:", String(e.reason));
-    });
-
-    // loga requests falhos (fetch)
-    const _fetch = window.fetch;
-    window.fetch = async (...args) => {
-      const res = await _fetch(...args);
-      if (!res.ok) log("⚠️ fetch não-ok:", res.status, res.url);
-      return res;
-    };
-
-    // marca que a página carregou
-    statusEl.innerHTML = '<span class="ok">HTML ok</span>';
-    log("✅ HTML carregou");
-  </script>
-
-  <!-- Script Memed -->
-  <script
-    src="https://integrations.memed.com.br/modulos/plataforma.sinapse-prescricao/build/sinapse-prescricao.min.js"
-    onload="document.getElementById('status').innerHTML='<span class=ok>Script Memed carregou</span>'; document.getElementById('log').textContent += '\n✅ Script Memed carregou';"
-    onerror="document.getElementById('status').innerHTML='<span class=bad>Script Memed NÃO carregou</span>'; document.getElementById('log').textContent += '\n❌ Script Memed NÃO carregou';"
-    data-token="COLE_AQUI_O_TOKEN_DO_PRESCRITOR">
-  </script>
-
-  <script>
-    // tenta ligar o módulo
-    try {
-      if (window.MdSinapsePrescricao?.event?.add) {
-        log("✅ MdSinapsePrescricao disponível");
-        MdSinapsePrescricao.event.add("core:moduleInit", function (module) {
-          log("📦 core:moduleInit:", module?.name);
-          if (module?.name === "plataforma.prescricao") {
-            log("➡️ abrindo módulo plataforma.prescricao");
-            MdHub.module.show("plataforma.prescricao");
-          }
-        });
-      } else {
-        log("❌ MdSinapsePrescricao não está definido (script não inicializou)");
+    <style>
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+        width: 100%;
       }
-    } catch (err) {
-      log("❌ erro ao inicializar:", String(err));
-    }
-  </script>
-</body>
+
+      #bar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 99999;
+        background: #111;
+        color: #fff;
+        padding: 10px 12px;
+        font-size: 12px;
+      }
+
+      #log {
+        white-space: pre-wrap;
+        word-break: break-word;
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      }
+
+      #memed-host {
+        position: fixed;
+        top: 110px;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: #f7f7f7;
+      }
+
+      .ok {
+        color: #7cfc00;
+      }
+
+      .bad {
+        color: #ff6b6b;
+      }
+
+      button {
+        margin-left: 8px;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div id="bar">
+      <div>
+        <b>Status:</b>
+        <span id="status">carregando…</span>
+        <button id="clear">Limpar</button>
+      </div>
+
+      <div id="log"></div>
+    </div>
+
+    <div id="memed-host"></div>
+    <div id="memed-container"></div>
+
+    <script>
+      const statusEl = document.getElementById("status");
+      const logEl = document.getElementById("log");
+
+      const log = (...args) => {
+        const line = args
+          .map((a) =>
+            typeof a === "string" ? a : JSON.stringify(a, null, 2)
+          )
+          .join(" ");
+
+        logEl.textContent +=
+          (logEl.textContent ? "\n" : "") + line;
+
+        console.log(...args);
+      };
+
+      document.getElementById("clear").onclick = () => {
+        logEl.textContent = "";
+      };
+
+      window.addEventListener("error", (e) => {
+        log(
+          "❌ window.error:",
+          e.message,
+          " @",
+          `${e.filename}:${e.lineno}:${e.colno}`
+        );
+      });
+
+      window.addEventListener("unhandledrejection", (e) => {
+        log("❌ unhandledrejection:", String(e.reason));
+      });
+
+      // loga requests falhos (fetch)
+      const _fetch = window.fetch;
+
+      window.fetch = async (...args) => {
+        const res = await _fetch(...args);
+
+        if (!res.ok) {
+          log("⚠️ fetch não-ok:", res.status, res.url);
+        }
+
+        return res;
+      };
+
+      // marca que a página carregou
+      statusEl.innerHTML = '<span class="ok">HTML ok</span>';
+      log("✅ HTML carregou");
+    </script>
+
+    <!-- Script Memed -->
+    <script
+      src="https://integrations.memed.com.br/modulos/plataforma.sinapse-prescricao/build/sinapse-prescricao.min.js"
+      data-token="COLE_AQUI_O_TOKEN_DO_PRESCRITOR"
+      onload="
+        document.getElementById('status').innerHTML =
+          '<span class=ok>Script Memed carregou</span>';
+        document.getElementById('log').textContent +=
+          '\n✅ Script Memed carregou';
+      "
+      onerror="
+        document.getElementById('status').innerHTML =
+          '<span class=bad>Script Memed NÃO carregou</span>';
+        document.getElementById('log').textContent +=
+          '\n❌ Script Memed NÃO carregou';
+      "
+    ></script>
+  </body>
 </html>
