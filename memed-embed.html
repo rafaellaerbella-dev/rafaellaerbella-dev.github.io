@@ -1,19 +1,25 @@
 <!DOCTYPE html>
-<html>
+<html lang="pt-BR">
   <head>
     <meta charset="utf-8" />
-    <title>Memed Embed HML</title>
+    <title>Memed – Homologação</title>
   </head>
+
   <body>
 
+    <h2>Prescrição – Memed (HML)</h2>
+
+    <!-- Script da Memed (homologação) -->
     <script
       src="https://integrations.memed.com.br/modulos/plataforma.sinapse-prescricao/build/sinapse-prescricao.min.js"
       data-token="eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.WzkwMzg3LCIwYTZiZTgwM2U1YTcwNTg5NDJmZGQ2NmU3MzU2YWM1MSIsIjIwMjYtMDEtMjIiLCJzaW5hcHNlLnByZXNjcmljYW8iLCJwYXJ0bmVyLjMuODU1MjAiXQ.DbTqxosooGFCD6OhWW_ClktXPZN4B1Ecnev4OsavoXs">
     </script>
 
     <script>
+      // Espera o módulo ficar pronto
       MdSinapsePrescricao.event.add("core:moduleInit", function (module) {
         if (module.name === "plataforma.prescricao") {
+          console.log("Memed pronta");
           MdHub.module.show("plataforma.prescricao");
         }
       });
