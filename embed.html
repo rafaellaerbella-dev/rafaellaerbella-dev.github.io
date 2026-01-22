@@ -149,7 +149,16 @@
         k.toLowerCase().includes("memed") ||
         k.toLowerCase().includes("hub")
       );
-  
+
+      MdSinapsePrescricao.event.add("core:moduleInit", function (module) {
+        log("📦 core:moduleInit:", module.name);
+
+        if (module.name === "plataforma.prescricao") {
+        log("➡️ chamando MdSinapsePrescricao.show()");
+        MdSinapsePrescricao.show();
+      }
+    });
+
       console.log("🔎 globais possíveis:", keys);
   
       // também loga especificamente alguns nomes comuns
