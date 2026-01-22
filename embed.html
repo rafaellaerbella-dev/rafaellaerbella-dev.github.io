@@ -142,31 +142,48 @@
       ></script>
   
       <script>
-    (function () {
-      const keys = Object.keys(window).filter(k =>
-        k.toLowerCase().includes("md") ||
-        k.toLowerCase().includes("sinapse") ||
-        k.toLowerCase().includes("memed") ||
-        k.toLowerCase().includes("hub")
-      );
-
-      MdSinapsePrescricao.event.add("core:moduleInit", function (module) {
-        log("📦 core:moduleInit:", module.name);
-
-        if (module.name === "plataforma.prescricao") {
-        log("➡️ chamando MdSinapsePrescricao.show()");
-        MdSinapsePrescricao.show();
-      }
-    });
-
-      console.log("🔎 globais possíveis:", keys);
-  
-      // também loga especificamente alguns nomes comuns
-      console.log("window.MdHub =", window.MdHub);
-      console.log("window.MdSinapsePrescricao =", window.MdSinapsePrescricao);
-      console.log("window.MdSinapse =", window.MdSinapse);
-    })();
-  </script>
+        (function () {
+          const statusEl = document.getElementById("status");
+          const logEl = document.getElementById("log");
+      
+          const log = (...args) => {
+            const line = args
+              .map((a) => (typeof a === "string" ? a : JSON.stringify(a, null, 2)))
+              .join(" ");
+            logEl.textContent += (logEl.textContent ? "\n" : "") + line;
+            console.log(...args);
+          };
+      
+          const keys = Object.keys(window).filter((k) =>
+            k.toLowerCase().includes("md") ||
+            k.toLowerCase().includes("sinapse") ||
+            k.toLowerCase().includes("memed") ||
+            k.toLowerCase().includes("hub")
+          );
+      
+          log("🔎 globais possíveis:", keys);
+          log("window.MdHub =", window.MdHub ? "OK" : "undefined");
+          log("window.MdSinapsePrescricao =", window.MdSinapsePrescricao ? "OK" : "undefined");
+      
+          // Espera o runtime da Memed inicializar
+          if (window.MdSinapsePrescricao?.event?.add) {
+            MdSinapsePrescricao.event.add("core:moduleInit", function (module) {
+              log("📦 core:moduleInit:", module?.name);
+      
+              if (module?.name === "plataforma.prescricao") {
+                if (window.MdHub?.module?.show) {
+                  log("➡️ MdHub.module.show(plataforma.prescricao)");
+                  MdHub.module.show("plataforma.prescricao");
+                } else {
+                  log("❌ MdHub ainda não existe. Provável token/domínio não autorizado.");
+                }
+              }
+            });
+          } else {
+            log("❌ MdSinapsePrescricao.event.add não disponível. Script não inicializou runtime.");
+          }
+        })();
+      </script>
 
   </body>
 </html>
