@@ -1,36 +1,98 @@
-<button id="abrir">Abrir prescrição</button>
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <title>Memed Embed – Teste</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
 
-<script>
-const btn = document.getElementById("abrir");
+  <!-- HUB -->
+  <script src="https://integrations.memed.com.br/modulos/plataforma.hub/branch/master/plataforma.hub.min.js"></script>
 
-btn.addEventListener("click", () => {
-  console.log("🟢 Clique");
+  <!-- PRESCRIÇÃO -->
+  <script src="https://integrations.memed.com.br/modulos/sinapse-prescricao/branch/master/sinapse-prescricao.min.js"></script>
 
-  MdHub.command.send("plataforma.prescricao", "setPaciente", {
-    nome: "Maria da Silva",
-    sexo: "F",
-    dataNascimento: "1985-07-22",
-    documento: "12345678900",
-    tipoDocumento: "CPF",
-    external_id: "ns-1"
-  });
+  <style>
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont;
+      padding: 40px;
+    }
+    button {
+      font-size: 16px;
+      padding: 14px 22px;
+      cursor: pointer;
+    }
+  </style>
+</head>
 
-  MdHub.command.send("plataforma.prescricao", "setEnderecoPaciente", {
-    logradouro: "Rua das Flores",
-    numero: "123",
-    bairro: "Centro",
-    cidade: "São Paulo",
-    uf: "SP",
-    cep: "01001000",
-    pais: "BR"
-  });
+<body>
 
-  MdHub.on("plataforma.prescricao.ready", () => {
-    console.log("🚀 Criando prescrição");
-    MdHub.command.send(
-      "plataforma.prescricao",
-      "createPrescription"
-    );
-  });
-});
-</script>
+  <h1>Memed – Teste Oficial</h1>
+  <button id="abrir">Abrir prescrição</button>
+
+  <script>
+    console.log("📄 Página carregada");
+
+    function esperarMdHub(callback) {
+      const interval = setInterval(() => {
+        if (window.MdHub && MdHub.command && MdHub.on) {
+          clearInterval(interval);
+          console.log("✅ MdHub disponível");
+          callback();
+        }
+      }, 300);
+    }
+
+    esperarMdHub(() => {
+
+      // 🔐 1️⃣ TOKEN — OBRIGATÓRIO
+      MdHub.command.send(
+        "plataforma.sdk",
+        "setToken",
+        "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.WzkwMzg3LCIwYTZiZTgwM2U1YTcwNTg5NDJmZGQ2NmU3MzU2YWM1MSIsIjIwMjYtMDEtMjIiLCJzaW5hcHNlLnByZXNjcmljYW8iLCJwYXJ0bmVyLjMuODU1MjAiXQ.DbTqxosooGFCD6OhWW_ClktXPZN4B1Ecnev4OsavoXs"
+      );
+
+      console.log("🔑 Token enviado");
+
+      document.getElementById("abrir").addEventListener("click", () => {
+        console.log("🟢 Clique no botão");
+
+        // 👤 2️⃣ PACIENTE
+        MdHub.command.send("plataforma.prescricao", "setPaciente", {
+          nome: "Maria da Silva",
+          sexo: "F",
+          dataNascimento: "1985-07-22",
+          documento: "12345678900",
+          tipoDocumento: "CPF",
+          external_id: "ns-1"
+        });
+
+        console.log("👤 Paciente enviado");
+
+        // 🏠 3️⃣ ENDEREÇO (obrigatório p/ controlados)
+        MdHub.command.send("plataforma.prescricao", "setEnderecoPaciente", {
+          logradouro: "Rua das Flores",
+          numero: "123",
+          bairro: "Centro",
+          cidade: "São Paulo",
+          uf: "SP",
+          cep: "01001000",
+          pais: "BR"
+        });
+
+        console.log("🏠 Endereço enviado");
+
+        // 🚀 4️⃣ ABRIR PRESCRIÇÃO
+        MdHub.on("plataforma.prescricao.ready", function () {
+          console.log("🚀 Abrindo prescrição");
+
+          MdHub.command.send(
+            "plataforma.prescricao",
+            "createPrescription"
+          );
+        });
+      });
+    });
+  </script>
+
+</body>
+</html>
