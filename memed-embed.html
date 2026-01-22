@@ -1,95 +1,63 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
-<head>
-  <meta charset="utf-8" />
-  <title>Memed integrada ao Ninsaúde</title>
+  <head>
+    <meta charset="utf-8" />
+    <title>Memed integrada ao Ninsaúde</title>
 
-  <style>
-    body {
-      margin: 0;
-      font-family: system-ui, -apple-system, BlinkMacSystemFont;
-    }
-
-    #btnSimularPaciente {
-      position: fixed;
-      top: 16px;
-      right: 16px;
-      z-index: 9999;
-      padding: 10px 14px;
-      font-size: 14px;
-      cursor: pointer;
-    }
-  </style>
-</head>
-
-<body>
-
-  <button id="btnSimularPaciente">
-    Simular paciente do Ninsaúde
-  </button>
-
-  <!-- Script da Memed -->
-  <script
-    src="https://integrations.memed.com.br/modulos/plataforma.sinapse-prescricao/build/sinapse-prescricao.min.js"
-    data-token="eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.WzkwMzg3LCIwYTZiZTgwM2U1YTcwNTg5NDJmZGQ2NmU3MzU2YWM1MSIsIjIwMjYtMDEtMjIiLCJzaW5hcHNlLnByZXNjcmljYW8iLCJwYXJ0bmVyLjMuODU1MjAiXQ.DbTqxosooGFCD6OhWW_ClktXPZN4B1Ecnev4OsavoXs">
-  </script>
-
-  <script>
-    let memedReady = false;
-
-    // ✅ EVENTO CORRETO
-    window.addEventListener("message", function (event) {
-      if (
-        event.data &&
-        event.data.type === "MDHUB_ALL_MODULES_READY"
-      ) {
-        memedReady = true;
-        console.log("Memed pronta para receber comandos");
+    <style>
+      body {
+        margin: 0;
+        font-family: system-ui, -apple-system, BlinkMacSystemFont;
       }
-    });
 
-    // 🔹 Botão de simulação
-    document
-  .getElementById("btnSimularPaciente")
-  .addEventListener("click", function () {
+      #btnSimularPaciente {
+        position: fixed;
+        top: 16px;
+        right: 16px;
+        z-index: 9999;
+        padding: 10px 14px;
+        font-size: 14px;
+        cursor: pointer;
+      }
+    </style>
+  </head>
 
-    console.log("CLIQUEI NO BOTÃO");
+  <body>
+    <button id="btnSimularPaciente">
+      Simular paciente do Ninsaúde
+    </button>
 
-    if (typeof MdHub === "undefined") {
-      console.error("MdHub ainda não existe");
-      return;
-    }
+    <!-- Script da Memed -->
+    <script
+      src="https://integrations.memed.com.br/modulos/plataforma.sinapse-prescricao/build/sinapse-prescricao.min.js"
+      data-token="eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.WzkwMzg3LCIwYTZiZTgwM2U1YTcwNTg5NDJmZGQ2NmU3MzU2YWM1MSIsIjIwMjYtMDEtMjIiLCJzaW5hcHNlLnByZXNjcmljYW8iLCJwYXJ0bmVyLjMuODU1MjAiXQ.DbTqxosooGFCD6OhWW_ClktXPZN4B1Ecnev4OsavoXs">
+    </script>
 
-    console.log("MdHub existe, enviando paciente");
+    <script>
+      let memedReady = false;
 
-    MdHub.command.send("plataforma.prescricao", "setPaciente", {
-      nome: "Maria da Silva",
-      sexo: "F",
-      dataNascimento: "1985-07-22",
-      documento: "12345678900",
-      external_id: "ns-simulado-1"
-    });
-
-    MdHub.command.send("plataforma.prescricao", "setEnderecoPaciente", {
-      logradouro: "Rua das Flores",
-      numero: "123",
-      bairro: "Centro",
-      cidade: "São Paulo",
-      uf: "SP",
-      cep: "01001000"
-    });
-
-    MdHub.command.send(
-      "plataforma.prescricao",
-      "openPrescription"
-    );
-  });
-
-
-        // 🚀 Agora sim
-        MdHub.command.send("plataforma.prescricao", "openPrescription");
+      // ✅ EVENTO CORRETO
+      window.addEventListener("message", function (event) {
+        if (
+          event.data &&
+          event.data.type === "MDHUB_ALL_MODULES_READY"
+        ) {
+          memedReady = true;
+          console.log("Memed pronta para receber comandos");
+        }
       });
-  </script>
 
-</body>
+      // 🔹 Botão de simulação
+      document
+        .getElementById("btnSimularPaciente")
+        .addEventListener("click", function () {
+          console.log("CLIQUEI NO BOTÃO");
+
+          if (typeof MdHub === "undefined") {
+            console.error("MdHub ainda não existe");
+            return;
+          }
+        });
+    </script>
+  </body>
 </html>
