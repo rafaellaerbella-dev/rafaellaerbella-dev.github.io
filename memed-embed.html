@@ -15,26 +15,14 @@
       data-token="eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.WzkwMzg3LCIwYTZiZTgwM2U1YTcwNTg5NDJmZGQ2NmU3MzU2YWM1MSIsIjIwMjYtMDEtMjIiLCJzaW5hcHNlLnByZXNjcmljYW8iLCJwYXJ0bmVyLjMuODU1MjAiXQ.DbTqxosooGFCD6OhWW_ClktXPZN4B1Ecnev4OsavoXs">
     </script>
 
-    <script>
-      // Espera a Memed inicializar corretamente
-      MdSinapsePrescricao.event.add("core:moduleInit", function (module) {
-        if (module.name === "plataforma.prescricao") {
-
-          // 1️⃣ Seta um paciente (obrigatório para sair da home)
-          MdHub.command.send("plataforma.prescricao", "setPaciente", {
-            nome: "Paciente Teste",
-            sexo: "F",
-            dataNascimento: "1990-01-01"
-          });
-
-          // 2️⃣ Força abrir direto a prescrição
-          MdHub.command.send("plataforma.prescricao", "openPrescription");
-
-          // 3️⃣ Garante que o módulo está visível
-          MdHub.module.show("plataforma.prescricao");
-        }
-      });
-    </script>
+   <script>
+    MdSinapsePrescricao.event.add("core:moduleInit", function (module) {
+      if (module.name === "plataforma.prescricao") {
+        MdHub.command.send("plataforma.prescricao", "openPrescription");
+        MdHub.module.show("plataforma.prescricao");
+      }
+    });
+  </script>
 
   </body>
 </html>
