@@ -5,16 +5,9 @@
   <title>Memed integrada ao Ninsaúde</title>
 
   <style>
-    html, body {
+    body {
       margin: 0;
-      padding: 0;
-      height: 100%;
-    }
-
-    #memed-container {
-      width: 100%;
-      height: 100%;
-      min-height: 600px;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont;
     }
 
     #btnSimularPaciente {
@@ -35,9 +28,6 @@
     Simular paciente do Ninsaúde
   </button>
 
-  <!-- 🔹 CONTAINER DA MEMED -->
-  <div id="memed-container"></div>
-
   <!-- Script da Memed -->
   <script
     src="https://integrations.memed.com.br/modulos/plataforma.sinapse-prescricao/build/sinapse-prescricao.min.js"
@@ -45,25 +35,27 @@
   </script>
 
   <script>
-    let pacienteRecebido = null;
-    let memedPronta = false;
+    let memedReady = false;
 
-    // 1️⃣ Espera o MdHub existir
-    const waitForMdHub = setInterval(() => {
-      if (!window.MdHub || !window.MdHub.module) return;
+    // ✅ EVENTO CORRETO
+    window.addEventListener("message", function (event) {
+      if (
+        event.data &&
+        event.data.type === "MDHUB_ALL_MODULES_READY"
+      ) {
+        memedReady = true;
+        console.log("Memed pronta para receber comandos");
+      }
+    });
 
-      clearInterval(waitForMdHub);
-      memedPronta = true;
-
-      // 🔹 Mostra o módulo MESMO SEM PACIENTE
-      MdHub.module.show("plataforma.prescricao");
-    }, 200);
-
-    // 2️⃣ Botão de simulação (substitui console)
+    // 🔹 Botão de simulação
     document
       .getElementById("btnSimularPaciente")
       .addEventListener("click", function () {
-        if (!memedPronta) return;
+        if (!memedReady) {
+          alert("Memed ainda não está pronta");
+          return;
+        }
 
         const paciente = {
           id: "ns-simulado-1",
@@ -90,7 +82,7 @@
           external_id: paciente.id
         });
 
-        // Endereço (controlados)
+        // Endereço
         MdHub.command.send("plataforma.prescricao", "setEnderecoPaciente", {
           logradouro: paciente.endereco.logradouro,
           numero: paciente.endereco.numero,
@@ -100,7 +92,7 @@
           cep: paciente.endereco.cep
         });
 
-        // Abre prescrição
+        // 🚀 Agora sim
         MdHub.command.send("plataforma.prescricao", "openPrescription");
       });
   </script>
