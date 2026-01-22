@@ -1,100 +1,36 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-  <meta charset="utf-8" />
-  <title>Memed integrada ao Ninsaúde</title>
+<button id="abrir">Abrir prescrição</button>
 
-  <style>
-    body {
-      margin: 0;
-      font-family: system-ui, -apple-system, BlinkMacSystemFont;
-    }
+<script>
+const btn = document.getElementById("abrir");
 
-    #btnSimularPaciente {
-      position: fixed;
-      top: 16px;
-      right: 16px;
-      z-index: 9999;
-      padding: 10px 14px;
-      font-size: 14px;
-      cursor: pointer;
-    }
+btn.addEventListener("click", () => {
+  console.log("🟢 Clique");
 
-    #btnSimularPaciente[disabled] {
-      opacity: 0.6;
-      cursor: not-allowed;
-    }
-  </style>
-</head>
+  MdHub.command.send("plataforma.prescricao", "setPaciente", {
+    nome: "Maria da Silva",
+    sexo: "F",
+    dataNascimento: "1985-07-22",
+    documento: "12345678900",
+    tipoDocumento: "CPF",
+    external_id: "ns-1"
+  });
 
-<body>
+  MdHub.command.send("plataforma.prescricao", "setEnderecoPaciente", {
+    logradouro: "Rua das Flores",
+    numero: "123",
+    bairro: "Centro",
+    cidade: "São Paulo",
+    uf: "SP",
+    cep: "01001000",
+    pais: "BR"
+  });
 
-  <button id="btnSimularPaciente" disabled>
-    Carregando Memed…
-  </button>
-
-  <!-- SCRIPT OFICIAL DA MEMED -->
-  <script
-    src="https://integrations.memed.com.br/modulos/plataforma.sinapse-prescricao/build/sinapse-prescricao.min.js"
-    data-token="eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.WzkwMzg3LCIwYTZiZTgwM2U1YTcwNTg5NDJmZGQ2NmU3MzU2YWM1MSIsIjIwMjYtMDEtMjIiLCJzaW5hcHNlLnByZXNjcmljYW8iLCJwYXJ0bmVyLjMuODU1MjAiXQ.DbTqxosooGFCD6OhWW_ClktXPZN4B1Ecnev4OsavoXs">
-  </script>
-
-  <script>
-    const btn = document.getElementById("btnSimularPaciente");
-
-    /**
-     * Espera REAL pela Memed.
-     * Não usa evento, não usa postMessage.
-     * Só libera quando o MdHub existe.
-     */
-    function esperarMemed() {
-      if (window.MdHub && window.MdHub.command) {
-        console.log("✅ MdHub disponível — Memed pronta");
-        btn.disabled = false;
-        btn.innerText = "Simular paciente do Ninsaúde";
-        return;
-      }
-
-      setTimeout(esperarMemed, 300);
-    }
-
-    esperarMemed();
-
-    btn.addEventListener("click", function () {
-      console.log("🟢 Clique no botão");
-    
-      if (!window.MdHub || !window.MdHub.command) {
-        console.error("❌ MdHub ainda não disponível");
-        return;
-      }
-    
-      console.log("➡️ Enviando paciente para a Memed");
-    
-      MdHub.command.send("plataforma.prescricao", "setPaciente", {
-        nome: "Maria da Silva",
-        sexo: "F",
-        dataNascimento: "1985-07-22",
-        documento: "12345678900",
-        external_id: "ns-simulado-1"
-      });
-    
-      MdHub.command.send("plataforma.prescricao", "setEnderecoPaciente", {
-        logradouro: "Rua das Flores",
-        numero: "123",
-        bairro: "Centro",
-        cidade: "São Paulo",
-        uf: "SP",
-        cep: "01001000"
-      });
-    
-      // 🚀 ESTE É O GATILHO CORRETO
-      MdHub.command.send(
-        "plataforma.prescricao",
-        "createPrescription"
-      );
-    });
-
-  </script>
-
-</body>
-</html>
+  MdHub.on("plataforma.prescricao.ready", () => {
+    console.log("🚀 Criando prescrição");
+    MdHub.command.send(
+      "plataforma.prescricao",
+      "createPrescription"
+    );
+  });
+});
+</script>
