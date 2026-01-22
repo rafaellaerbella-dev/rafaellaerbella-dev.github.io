@@ -5,12 +5,9 @@
   <title>Memed – Prescrição (debug)</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
-    html, body { margin:0; padding:0; height:100%; font-family: system-ui, -apple-system, sans-serif; }
-    #bar { position: fixed; top:0; left:0; right:0; z-index:99999;
-      background:#111; color:#fff; padding:10px 12px; font-size:12px; }
-    #log { white-space: pre-wrap; word-break: break-word; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
-    #content { padding-top: 110px; height: calc(100% - 110px); }
-    #memed-container { height: 100%; width: 100%; background: #f7f7f7; }
+    html, body { margin:0; padding:0; height:100%; width:100%; }
+    #bar { position: fixed; top:0; left:0; right:0; z-index:99999; background:#111; color:#fff; padding:10px 12px; font-size:12px; }
+    #memed-container { position: fixed; top: 110px; left:0; right:0; bottom:0; }
     .ok { color:#7CFC00; }
     .bad { color:#ff6b6b; }
     button { margin-left:8px; }
@@ -24,9 +21,7 @@
     <div id="log"></div>
   </div>
 
-  <div id="content">
-    <div id="memed-container"></div>
-  </div>
+<div id="memed-container"></div>
 
   <script>
     const statusEl = document.getElementById("status");
