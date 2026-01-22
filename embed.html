@@ -193,6 +193,24 @@
         });
       </script>
 
+      <script>
+    function dump(name, obj) {
+      try {
+        const keys = Object.keys(obj || {}).sort();
+        const fns = keys.filter(k => typeof obj[k] === "function");
+        console.log(`🔎 ${name} keys:`, keys);
+        console.log(`🔧 ${name} functions:`, fns);
+      } catch (e) {
+        console.log(`❌ dump falhou em ${name}:`, e);
+      }
+    }
+  
+    dump("MdSinapsePrescricao", window.MdSinapsePrescricao);
+    dump("MdSinapsePrescricao.module", window.MdSinapsePrescricao?.module);
+    dump("MdSinapsePrescricao.modules", window.MdSinapsePrescricao?.modules);
+    dump("MdSinapsePrescricao.command", window.MdSinapsePrescricao?.command);
+    dump("MdSinapsePrescricao.core", window.MdSinapsePrescricao?.core);
+  </script>
 
   </body>
 </html>
