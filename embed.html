@@ -166,48 +166,33 @@
       </script>
     
       <script>
-        (function () {
-          const statusEl = document.getElementById("status");
-          const logEl = document.getElementById("log");
+        MdSinapsePrescricao.event.add("core:moduleInit", function (module) {
+          log("📦 core:moduleInit:", module.name);
       
-          const log = (...args) => {
-            const line = args
-              .map((a) => (typeof a === "string" ? a : JSON.stringify(a, null, 2)))
-              .join(" ");
-            logEl.textContent += (logEl.textContent ? "\n" : "") + line;
-            console.log(...args);
-          };
+          if (module.name === "plataforma.prescricao") {
+            const hub = findHub(window.MdSinapsePrescricao);
+            log("🔎 hub encontrado?", !!hub);
       
-          const keys = Object.keys(window).filter((k) =>
-            k.toLowerCase().includes("md") ||
-            k.toLowerCase().includes("sinapse") ||
-            k.toLowerCase().includes("memed") ||
-            k.toLowerCase().includes("hub")
-          );
+            // tenta achar método de mostrar módulo
+            const showFn =
+              hub?.module?.show ||
+              hub?.Module?.show ||
+              hub?.modules?.show ||
+              hub?.Modules?.show;
       
-          log("🔎 globais possíveis:", keys);
-          log("window.MdHub =", window.MdHub ? "OK" : "undefined");
-          log("window.MdSinapsePrescricao =", window.MdSinapsePrescricao ? "OK" : "undefined");
+            log("🔎 showFn?", typeof showFn);
       
-          // Espera o runtime da Memed inicializar
-          if (window.MdSinapsePrescricao?.event?.add) {
-            MdSinapsePrescricao.event.add("core:moduleInit", function (module) {
-              log("📦 core:moduleInit:", module?.name);
-      
-              if (module?.name === "plataforma.prescricao") {
-                if (window.MdHub?.module?.show) {
-                  log("➡️ MdHub.module.show(plataforma.prescricao)");
-                  MdHub.module.show("plataforma.prescricao");
-                } else {
-                  log("❌ MdHub ainda não existe. Provável token/domínio não autorizado.");
-                }
-              }
-            });
-          } else {
-            log("❌ MdSinapsePrescricao.event.add não disponível. Script não inicializou runtime.");
+            if (typeof showFn === "function") {
+              log("➡️ abrindo plataforma.prescricao via hub.module.show");
+              showFn.call(hub.module || hub.Module || hub.modules || hub.Modules, "plataforma.prescricao");
+            } else {
+              log("❌ não achei hub.module.show. Vamos inspecionar o objeto no próximo passo.");
+              console.log("MdSinapsePrescricao =", window.MdSinapsePrescricao);
+            }
           }
-        })();
+        });
       </script>
+
 
   </body>
 </html>
