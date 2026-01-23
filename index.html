@@ -21,15 +21,12 @@
     const params = new URLSearchParams(window.location.search);
 
     const paciente = {
-      idExterno: params.get("idExterno") || "paciente-teste-001",
-      nome: params.get("nome") || "Paciente Teste",
-      telefone: params.get("telefone") || "11999999999",
-      cpf: params.get("cpf") || "43328886850",
-      nome_social: params.get("nome_social") || "",
-      endereco:
-        params.get("endereco") ||
-        "Rua Exemplo, 123 - São Paulo/SP",
-      categoriesConditions: [] // por enquanto vazio
+      idExterno: "2",
+      nome: "Rafael Falk Giannotti",
+      telefone: "11970399942",
+      cpf: "45528090830",
+      endereco: "Rua Inhambu, 973 - Apto 53A - Vila Uberabinha - Sao Paulo/SP - CEP 04520-013",
+      ...
     };
 
     let memedCarregada = false;
