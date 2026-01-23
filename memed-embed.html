@@ -3,44 +3,47 @@
 <head>
   <meta charset="UTF-8" />
   <title>Prescrição Memed</title>
-  <style>
-    body {
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
-      padding: 16px;
-    }
-    button {
-      padding: 10px 16px;
-      font-size: 15px;
-      cursor: pointer;
-    }
-  </style>
 </head>
 
 <body>
-
   <button id="abrirMemed">Abrir prescrição</button>
 
   <script>
+    /* ===============================
+       CONFIG
+    =============================== */
     const WORKER_URL =
       "https://memed-token.rafaella-erbella.workers.dev/memed/token";
 
     let memedReady = false;
 
-    // 1️⃣ Buscar token no backend (Cloudflare Worker)
+    /* ===============================
+       DADOS DO PACIENTE (NINSAÚDE)
+       👉 depois você troca pela fonte real
+    =============================== */
+    const paciente = {
+      idExterno: "ninsaude-123456",
+      nome: "Paciente Teste",
+      telefone: "11999999999",
+      dataNascimento: "01/01/1990",
+      cpf: "12345678900",
+      email: "paciente@email.com",
+      endereco: "Rua Exemplo, 123 - São Paulo/SP"
+    };
+
+    /* ===============================
+       TOKEN
+    =============================== */
     async function obterTokenMemed() {
-      const resp = await fetch(WORKER_URL, {
-        method: "POST"
-      });
-
-      if (!resp.ok) {
-        throw new Error("Erro ao obter token da Memed");
-      }
-
+      const resp = await fetch(WORKER_URL, { method: "POST" });
+      if (!resp.ok) throw new Error("Erro ao obter token Memed");
       const data = await resp.json();
       return data.token;
     }
 
-    // 2️⃣ Carregar script da Memed dinamicamente
+    /* ===============================
+       SCRIPT MEMED
+    =============================== */
     async function carregarMemed() {
       const token = await obterTokenMemed();
 
@@ -50,54 +53,56 @@
           "https://integrations.memed.com.br/modulos/plataforma.sinapse-prescricao/build/sinapse-prescricao.min.js";
         script.dataset.token = token;
 
-        script.onload = () => {
-          console.log("✅ Script Memed carregado");
-          resolve();
-        };
-
-        script.onerror = () => reject("Erro ao carregar script Memed");
+        script.onload = () => resolve();
+        script.onerror = () => reject("Erro ao carregar Memed");
 
         document.body.appendChild(script);
       });
     }
 
-    // 3️⃣ Inicialização da Memed
+    /* ===============================
+       INIT MEMED
+    =============================== */
     function inicializarMemed() {
       MdSinapsePrescricao.event.add(
         "core:moduleInit",
         async function (module) {
           if (module.name === "plataforma.prescricao") {
             console.log("✅ Memed pronta");
+
+            // 🔹 Envia paciente
+            await MdHub.command.send(
+              "plataforma.prescricao",
+              "setPaciente",
+              paciente
+            );
+
             memedReady = true;
           }
         }
       );
     }
 
-    // 4️⃣ Clique do botão
-    document
-      .getElementById("abrirMemed")
-      .addEventListener("click", async () => {
-        try {
-          console.log("🟢 Clique no botão");
-
-          if (!window.MdHub) {
-            await carregarMemed();
-            inicializarMemed();
-          }
-
-          if (!memedReady) {
-            console.log("⏳ Aguardando Memed ficar pronta…");
-            return;
-          }
-
-          // Apenas abre a Memed (sem paciente ainda)
-          MdHub.module.show("plataforma.prescricao");
-        } catch (err) {
-          console.error("❌ Erro ao abrir Memed", err);
+    /* ===============================
+       BOTÃO
+    =============================== */
+    document.getElementById("abrirMemed").addEventListener("click", async () => {
+      try {
+        if (!window.MdHub) {
+          await carregarMemed();
+          inicializarMemed();
         }
-      });
-  </script>
 
+        if (!memedReady) {
+          console.log("⏳ Aguardando Memed ficar pronta");
+          return;
+        }
+
+        MdHub.module.show("plataforma.prescricao");
+      } catch (err) {
+        console.error("❌ Erro ao abrir Memed", err);
+      }
+    });
+  </script>
 </body>
 </html>
