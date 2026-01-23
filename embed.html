@@ -1,216 +1,84 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
-  <head>
-    <meta charset="UTF-8" />
+<head>
+  <meta charset="UTF-8" />
+  <title>Prescrição Memed</title>
+</head>
 
-    <title>Memed – Prescrição (debug)</title>
+<body>
+  <button id="abrirMemed">Abrir prescrição</button>
 
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <script>
+    const WORKER_URL =
+      "https://memed-token.rafaella-erbella.workers.dev/memed/token";
 
-    <style>
-      html,
-      body {
-        margin: 0;
-        padding: 0;
-        height: 100%;
-        width: 100%;
-      }
+    const paciente = {
+      idExterno: "ninsaude-123456",
+      nome: "Paciente Teste",
+      telefone: "11999999999",
+      dataNascimento: "1990-01-01",
+      cpf: "12345678900",
+      email: "paciente@email.com",
+      endereco: "Rua Exemplo, 123 - São Paulo/SP"
+    };
 
-      #bar {
-        position: fixed;
-        top: 0;
-        left: 0;
-        right: 0;
-        z-index: 99999;
-        background: #111;
-        color: #fff;
-        padding: 10px 12px;
-        font-size: 12px;
-      }
+    let memedCarregada = false;
 
-      #log {
-        white-space: pre-wrap;
-        word-break: break-word;
-        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-      }
-
-      #memed-host {
-        position: fixed;
-        top: 110px;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: #f7f7f7;
-      }
-
-      .ok {
-        color: #7cfc00;
-      }
-
-      .bad {
-        color: #ff6b6b;
-      }
-
-      button {
-        margin-left: 8px;
-      }
-    </style>
-  </head>
-
-  <body>
-    <div id="bar">
-      <div>
-        <b>Status:</b>
-        <span id="status">carregando…</span>
-        <button id="clear">Limpar</button>
-      </div>
-
-      <div id="log"></div>
-    </div>
-
-    <div id="memed-host"></div>
-    <div id="memed-container"></div>
-
-    <script>
-      const statusEl = document.getElementById("status");
-      const logEl = document.getElementById("log");
-
-      const log = (...args) => {
-        const line = args
-          .map((a) =>
-            typeof a === "string" ? a : JSON.stringify(a, null, 2)
-          )
-          .join(" ");
-
-        logEl.textContent +=
-          (logEl.textContent ? "\n" : "") + line;
-
-        console.log(...args);
-      };
-
-      document.getElementById("clear").onclick = () => {
-        logEl.textContent = "";
-      };
-
-      window.addEventListener("error", (e) => {
-        log(
-          "❌ window.error:",
-          e.message,
-          " @",
-          `${e.filename}:${e.lineno}:${e.colno}`
-        );
-      });
-
-      window.addEventListener("unhandledrejection", (e) => {
-        log("❌ unhandledrejection:", String(e.reason));
-      });
-
-      // loga requests falhos (fetch)
-      const _fetch = window.fetch;
-
-      window.fetch = async (...args) => {
-        const res = await _fetch(...args);
-
-        if (!res.ok) {
-          log("⚠️ fetch não-ok:", res.status, res.url);
-        }
-
-        return res;
-      };
-
-      // marca que a página carregou
-      statusEl.innerHTML = '<span class="ok">HTML ok</span>';
-      log("✅ HTML carregou");
-    </script>
-
-    <!-- Script Memed -->
-    <script
-      src="https://integrations.memed.com.br/modulos/plataforma.sinapse-prescricao/build/sinapse-prescricao.min.js"
-      data-token="COLE_AQUI_O_TOKEN_DO_PRESCRITOR"
-      onload="
-        document.getElementById('status').innerHTML =
-          '<span class=ok>Script Memed carregou</span>';
-        document.getElementById('log').textContent +=
-          '\n✅ Script Memed carregou';
-      "
-      onerror="
-        document.getElementById('status').innerHTML =
-          '<span class=bad>Script Memed NÃO carregou</span>';
-        document.getElementById('log').textContent +=
-          '\n❌ Script Memed NÃO carregou';
-      "
-      ></script>
-
-      <script>
-        function findHub(obj) {
-          try {
-            const candidates = [
-              obj?.hub,
-              obj?.Hub,
-              obj?.mdHub,
-              obj?.MdHub,
-              obj?.mdhub,
-              obj?.runtime?.hub,
-              obj?.runtime?.MdHub,
-              obj?.runtime?.mdHub,
-              obj?.runtime?.core?.hub,
-              obj?.core?.hub,
-              obj?.core?.MdHub
-            ].filter(Boolean);
-      
-            return candidates[0] || null;
-          } catch {
-            return null;
-          }
-        }
-      </script>
-    
-      <script>
-        MdSinapsePrescricao.event.add("core:moduleInit", function (module) {
-          log("📦 core:moduleInit:", module.name);
-      
-          if (module.name === "plataforma.prescricao") {
-            const hub = findHub(window.MdSinapsePrescricao);
-            log("🔎 hub encontrado?", !!hub);
-      
-            // tenta achar método de mostrar módulo
-            const showFn =
-              hub?.module?.show ||
-              hub?.Module?.show ||
-              hub?.modules?.show ||
-              hub?.Modules?.show;
-      
-            log("🔎 showFn?", typeof showFn);
-      
-            if (typeof showFn === "function") {
-              log("➡️ abrindo plataforma.prescricao via hub.module.show");
-              showFn.call(hub.module || hub.Module || hub.modules || hub.Modules, "plataforma.prescricao");
-            } else {
-              log("❌ não achei hub.module.show. Vamos inspecionar o objeto no próximo passo.");
-              console.log("MdSinapsePrescricao =", window.MdSinapsePrescricao);
-            }
-          }
-        });
-      </script>
-
-      <script>
-    function dump(name, obj) {
-      try {
-        const keys = Object.keys(obj || {}).sort();
-        const fns = keys.filter(k => typeof obj[k] === "function");
-        console.log(`🔎 ${name} keys:`, keys);
-        console.log(`🔧 ${name} functions:`, fns);
-      } catch (e) {
-        console.log(`❌ dump falhou em ${name}:`, e);
-      }
+    async function obterTokenMemed() {
+      const resp = await fetch(WORKER_URL);
+      if (!resp.ok) throw new Error("Erro ao obter token Memed");
+      const { token } = await resp.json();
+      return token;
     }
-  
-    dump("MdSinapsePrescricao", window.MdSinapsePrescricao);
-    dump("MdSinapsePrescricao.module", window.MdSinapsePrescricao?.module);
-    dump("MdSinapsePrescricao.modules", window.MdSinapsePrescricao?.modules);
-    dump("MdSinapsePrescricao.command", window.MdSinapsePrescricao?.command);
-    dump("MdSinapsePrescricao.core", window.MdSinapsePrescricao?.core);
-  </script>
 
-  </body>
+    async function carregarScriptMemed() {
+      const token = await obterTokenMemed();
+
+      return new Promise((resolve, reject) => {
+        const script = document.createElement("script");
+        script.src =
+          "https://integrations.memed.com.br/modulos/plataforma.sinapse-prescricao/build/sinapse-prescricao.min.js";
+        script.dataset.token = token;
+
+        script.onload = resolve;
+        script.onerror = reject;
+
+        document.body.appendChild(script);
+      });
+    }
+
+    function configurarEventosMemed() {
+      MdSinapsePrescricao.event.add(
+        "core:moduleInit",
+        async (module) => {
+          if (module.name === "plataforma.prescricao") {
+            console.log("✅ Memed pronta");
+
+            await MdHub.command.send(
+              "plataforma.prescricao",
+              "setPaciente",
+              paciente
+            );
+
+            MdHub.module.show("plataforma.prescricao");
+          }
+        }
+      );
+    }
+
+    document
+      .getElementById("abrirMemed")
+      .addEventListener("click", async () => {
+        try {
+          if (!memedCarregada) {
+            await carregarScriptMemed();
+            configurarEventosMemed();
+            memedCarregada = true;
+          }
+        } catch (err) {
+          console.error("❌ Erro ao abrir Memed", err);
+        }
+      });
+  </script>
+</body>
 </html>
