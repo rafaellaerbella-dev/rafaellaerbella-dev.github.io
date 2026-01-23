@@ -8,10 +8,10 @@
 <body>
   <button id="abrirMemed">Abrir prescrição</button>
 
-  <script>
+   <script>
     const WORKER_URL =
       "https://memed-token.rafaella-erbella.workers.dev/memed/token";
-
+  
     const paciente = {
       idExterno: "ninsaude-123456",
       nome: "Paciente Teste",
@@ -21,51 +21,51 @@
       email: "paciente@example.com",
       endereco: "Rua Exemplo, 123 - São Paulo/SP"
     };
-
+  
     let memedCarregada = false;
-
+  
     async function obterTokenMemed() {
       const resp = await fetch(WORKER_URL);
       if (!resp.ok) throw new Error("Erro ao obter token Memed");
       const { token } = await resp.json();
       return token;
     }
-
+  
     async function carregarScriptMemed() {
       const token = await obterTokenMemed();
-
+  
       return new Promise((resolve, reject) => {
         const script = document.createElement("script");
         script.src =
           "https://integrations.memed.com.br/modulos/plataforma.sinapse-prescricao/build/sinapse-prescricao.min.js";
         script.dataset.token = token;
-
+  
         script.onload = resolve;
         script.onerror = reject;
-
+  
         document.body.appendChild(script);
       });
     }
-
+  
     function configurarEventosMemed() {
       MdSinapsePrescricao.event.add(
         "core:moduleInit",
         async (module) => {
           if (module.name === "plataforma.prescricao") {
             console.log("✅ Memed pronta");
-
+  
             await MdHub.command.send(
               "plataforma.prescricao",
               "setPaciente",
               paciente
             );
-
+  
             MdHub.module.show("plataforma.prescricao");
           }
         }
       );
     }
-
+  
     document
       .getElementById("abrirMemed")
       .addEventListener("click", async () => {
@@ -80,5 +80,4 @@
         }
       });
   </script>
-</body>
 </html>
