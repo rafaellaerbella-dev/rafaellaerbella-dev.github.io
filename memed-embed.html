@@ -1,58 +1,141 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
-<head>
-  <meta charset="UTF-8" />
-  <title>Prescrição Memed</title>
-</head>
+  <head>
+    <meta charset="UTF-8" />
+    <title>Prescrição – Memed</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-<body>
+    <style>
+      html, body {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+      }
+      #memed-container {
+        width: 100%;
+        height: 100vh;
+      }
+    </style>
+  </head>
 
-  <h2>Prescrição Memed</h2>
+  <body>
+    <div id="memed-container"></div>
 
-  <script>
-    function initMemed() {
-      const script = document.createElement("script");
+    <script>
+      /**
+       * 1️⃣ DADOS DO PACIENTE
+       * Esses dados DEVEM vir do Ninsaúde
+       */
+      const paciente = {
+        id: "ninsaude-paciente-123",          // ID REAL DO NINSAÚDE
+        nome: "Paciente Exemplo",
+        telefone: "11999999999",
+        cpf: "12345678901",
+        email: "paciente@email.com",
+        dataNascimento: "1990-01-01",
+        endereco: "Rua Exemplo, 123 - São Paulo/SP"
+      };
 
-      script.src =
-        "https://integrations.memed.com.br/modulos/plataforma.sinapse-prescricao/build/sinapse-prescricao.min.js";
+      /**
+       * 2️⃣ TOKEN DE PRODUÇÃO
+       * Esse token deve ser INJETADO PELO BACKEND
+       */
+      const MEMED_TOKEN = "COLE_AQUI_O_TOKEN_DE_PRODUCAO";
 
-      // 🔐 TOKEN AQUI (homologação ou produção)
-      script.dataset.token = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.WzkwMzg3LCIwYTZiZTgwM2U1YTcwNTg5NDJmZGQ2NmU3MzU2YWM1MSIsIjIwMjYtMDEtMjIiLCJzaW5hcHNlLnByZXNjcmljYW8iLCJwYXJ0bmVyLjMuODU1MjAiXQ.DbTqxosooGFCD6OhWW_ClktXPZN4B1Ecnev4OsavoXs";
+      /**
+       * 3️⃣ Carrega script da Memed
+       */
+      function carregarMemed() {
+        const script = document.createElement("script");
+        script.src =
+          "https://integrations.memed.com.br/modulos/plataforma.sinapse-prescricao/build/sinapse-prescricao.min.js";
 
-      script.addEventListener("load", () => {
-        console.log("📦 Script Memed carregado");
+        script.dataset.token = MEMED_TOKEN;
 
+        script.onload = () => {
+          console.log("✅ Script da Memed carregado");
+          configurarEventos();
+        };
+
+        document.body.appendChild(script);
+      }
+
+      /**
+       * 4️⃣ Configuração dos eventos e paciente
+       */
+      function configurarEventos() {
+        /**
+         * Evento obrigatório – salvar prescrição no prontuário
+         */
+        MdSinapsePrescricao.event.add(
+          "prescricaoImpressa",
+          function (payload) {
+            console.log("🧾 Prescrição impressa:", payload);
+
+            // 👉 AQUI você envia para o backend do Ninsaúde
+            fetch("/api/salvar-prescricao", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(payload)
+            });
+          }
+        );
+
+        /**
+         * Evento obrigatório – prescrição excluída
+         */
+        MdSinapsePrescricao.event.add(
+          "prescricaoExcluida",
+          function (payload) {
+            console.log("🗑️ Prescrição excluída:", payload);
+
+            fetch("/api/excluir-prescricao", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(payload)
+            });
+          }
+        );
+
+        /**
+         * Aguarda módulo de prescrição
+         */
         MdSinapsePrescricao.event.add(
           "core:moduleInit",
           async function (module) {
-            console.log("🔔 Módulo iniciado:", module.name);
-
             if (module.name === "plataforma.prescricao") {
-              console.log("✅ Prescrição pronta");
+              console.log("🟢 Módulo de prescrição pronto");
 
+              /**
+               * 5️⃣ Envia paciente para a Memed
+               */
               await MdHub.command.send(
                 "plataforma.prescricao",
                 "setPaciente",
                 {
-                  idExterno: "ninsaude-123",
-                  nome: "Maria da Silva",
-                  telefone: "11999999999",
-                  cpf: "12345678900",
-                  endereco: "Rua das Flores, 123"
+                  idExterno: paciente.id,
+                  nome: paciente.nome,
+                  telefone: paciente.telefone,
+                  cpf: paciente.cpf,
+                  email: paciente.email,
+                  data_nascimento: paciente.dataNascimento,
+                  endereco: paciente.endereco
                 }
               );
 
+              /**
+               * 6️⃣ Abre a prescrição
+               */
               MdHub.module.show("plataforma.prescricao");
             }
           }
         );
-      });
+      }
 
-      document.body.appendChild(script);
-    }
-
-    initMemed();
-  </script>
-
-</body>
+      /**
+       * Inicialização
+       */
+      carregarMemed();
+    </script>
+  </body>
 </html>
