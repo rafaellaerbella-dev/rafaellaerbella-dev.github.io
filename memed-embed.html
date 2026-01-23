@@ -11,14 +11,26 @@
   <script>
     const WORKER_URL =
       "https://memed-token.rafaella-erbella.workers.dev/memed/token";
-    
+
+    const paciente = {
+      idExterno: "ninsaude-123456",
+      nome: "Paciente Teste",
+      telefone: "11999999999",
+      dataNascimento: "1990-01-01",
+      cpf: "12345678900",
+      email: "paciente@email.com",
+      endereco: "Rua Exemplo, 123 - São Paulo/SP"
+    };
+
+    let memedCarregada = false;
+
     async function obterTokenMemed() {
       const resp = await fetch(WORKER_URL);
       if (!resp.ok) throw new Error("Erro ao obter token Memed");
       const { token } = await resp.json();
       return token;
     }
-    
+
     async function carregarScriptMemed() {
       const token = await obterTokenMemed();
 
