@@ -1,86 +1,114 @@
-<script>
-  const WORKER_URL =
-    "https://memed-token.rafaella-erbella.workers.dev/memed/token";
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <title>Prescrição Memed</title>
+</head>
 
-  const paciente = {
-    idExterno: "algum_tipo_de_hash_ou_id",
-    nome: "Marinaldo Marina Mariam",
-    telefone: "99999999999",
-    cpf: "99999999999",
-    nome_social: "Três Emes",
-    endereco: "Rua dos Emes, 03",
-    categoriesConditions: [1]
-  };
+<body>
+  <button id="abrirMemed">Abrir prescrição</button>
 
-  let memedCarregada = false;
+  <!-- Script da Memed será carregado dinamicamente com o token,
+       mas precisamos ter o container da página -->
+  <div id="memed-container"></div>
 
-  async function obterTokenMemed() {
-    const resp = await fetch(WORKER_URL);
-    if (!resp.ok) throw new Error("Erro ao obter token Memed");
-    const { token } = await resp.json();
-    return token;
-  }
+  <script>
+    const WORKER_URL =
+      "https://memed-token.rafaella-erbella.workers.dev/memed/token";
 
-  async function carregarScriptMemed() {
-    const token = await obterTokenMemed();
+    const paciente = {
+      idExterno: "algum_tipo_de_hash_ou_id",
+      nome: "Marinaldo Marina Mariam",
+      telefone: "99999999999",
+      cpf: "99999999999",
+      nome_social: "Três Emes",
+      endereco: "Rua dos Emes, 03",
+      categoriesConditions: [1]
+    };
 
-    return new Promise((resolve, reject) => {
-      const script = document.createElement("script");
-      script.src =
-        "https://integrations.memed.com.br/modulos/plataforma.sinapse-prescricao/build/sinapse-prescricao.min.js";
-      script.dataset.token = token;
+    let memedCarregada = false;
 
-      script.onload = resolve;
-      script.onerror = reject;
+    async function obterTokenMemed() {
+      const resp = await fetch(WORKER_URL);
+      if (!resp.ok) throw new Error("Erro ao obter token Memed");
+      const { token } = await resp.json();
+      return token;
+    }
 
-      document.body.appendChild(script);
-    });
-  }
+    async function carregarScriptMemed() {
+      const token = await obterTokenMemed();
 
-  function configurarEventosMemed() {
-    MdSinapsePrescricao.event.add("core:moduleInit", async function (module) {
-      if (module.name === "plataforma.prescricao") {
-        // mesmo padrão do exemplo da doc
-        await MdHub.command.send(
-          "plataforma.prescricao",
-          "setPaciente",
-          paciente
-        );
+      return new Promise((resolve, reject) => {
+        const script = document.createElement("script");
+        script.src =
+          "https://integrations.memed.com.br/modulos/plataforma.sinapse-prescricao/build/sinapse-prescricao.min.js";
+        script.dataset.token = token;
 
-        await MdHub.command.send("plataforma.prescricao", "setAllergy", [622]);
+        script.onload = () => {
+          console.log("✅ Script Memed carregou");
+          resolve();
+        };
+        script.onerror = (e) => {
+          console.error("❌ Script Memed NÃO carregou", e);
+          reject(e);
+        };
 
-        await MdHub.command.send("plataforma.prescricao", "addItem", {
-          id: "w4103",
-          posologia: "<p>HTML da posologia</p>",
-          quantidade: 1,
-          unit: "embalagens"
-        });
+        document.body.appendChild(script);
+      });
+    }
 
-        await MdHub.command.send(
-          "plataforma.prescricao",
-          "setFeatureToggle",
-          {
-            editPatient: false,
-            guidesOnboarding: false
-          }
-        );
+    function configurarEventosMemed() {
+      MdSinapsePrescricao.event.add("core:moduleInit", async function (module) {
+        console.log("📦 core:moduleInit:", module.name);
 
-        MdHub.module.show("plataforma.prescricao");
-      }
-    });
-  }
+        if (module.name === "plataforma.prescricao") {
+          console.log("✅ Memed pronta (plataforma.prescricao)");
 
-  document
-    .getElementById("abrirMemed")
-    .addEventListener("click", async () => {
-      try {
-        if (!memedCarregada) {
-          await carregarScriptMemed();
-          configurarEventosMemed();
-          memedCarregada = true;
+          await MdHub.command.send(
+            "plataforma.prescricao",
+            "setPaciente",
+            paciente
+          );
+
+          await MdHub.command.send("plataforma.prescricao", "setAllergy", [622]);
+
+          await MdHub.command.send("plataforma.prescricao", "addItem", {
+            id: "w4103",
+            posologia: "<p>HTML da posologia</p>",
+            quantidade: 1,
+            unit: "embalagens"
+          });
+
+          await MdHub.command.send(
+            "plataforma.prescricao",
+            "setFeatureToggle",
+            {
+              editPatient: false,
+              guidesOnboarding: false
+            }
+          );
+
+          MdHub.module.show("plataforma.prescricao");
         }
-      } catch (err) {
-        console.error("❌ Erro ao abrir Memed", err);
-      }
-    });
-</script>
+      });
+    }
+
+    document
+      .getElementById("abrirMemed")
+      .addEventListener("click", async () => {
+        try {
+          if (!memedCarregada) {
+            await carregarScriptMemed();
+            configurarEventosMemed();
+            memedCarregada = true;
+          } else {
+            // se já carregou, só mostra de novo
+            MdHub.module.show("plataforma.prescricao");
+          }
+        } catch (err) {
+          console.error("❌ Erro ao abrir Memed", err);
+        }
+      });
+  </script>
+</body>
+</html>
