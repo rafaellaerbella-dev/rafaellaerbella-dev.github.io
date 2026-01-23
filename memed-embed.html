@@ -20,50 +20,37 @@
 
     <script>
       /************************************************************
-       * 1. CONFIGURAÇÕES BÁSICAS
+       * 1. RECEBE DADOS DO NINSAÚDE
        ************************************************************/
-      const MEMED_TOKEN = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.WzkwMzg3LCIwYTZiZTgwM2U1YTcwNTg5NDJmZGQ2NmU3MzU2YWM1MSIsIjIwMjYtMDEtMjIiLCJzaW5hcHNlLnByZXNjcmljYW8iLCJwYXJ0bmVyLjMuODU1MjAiXQ.DbTqxosooGFCD6OhWW_ClktXPZN4B1Ecnev4OsavoXs";
+      if (!window.NINSAUDE_MEMED) {
+        console.error("❌ Dados do Ninsaúde não encontrados");
+        throw new Error("Integração Memed sem dados");
+      }
 
-      // Dados de exemplo — na prática vêm do Ninsaúde
-      const paciente = {
-        idExterno: "paciente-123",          // obrigatório
-        nome: "Paciente Teste",              // obrigatório
-        telefone: "11999999999",              // obrigatório
-        cpf: "12345678900",                   // obrigatório (ou withoutCpf: true)
-        dataNascimento: "1990-01-01",         // obrigatório
-        email: "paciente@email.com",          // recomendado
-        endereco: "Rua Exemplo, 123"           // obrigatório p/ receita controlada
-      };
+      const { token, paciente } = window.NINSAUDE_MEMED;
 
       /************************************************************
-       * 2. CARREGAR SCRIPT DA MEMED
+       * 2. CARREGA SCRIPT DA MEMED
        ************************************************************/
       function carregarMemed() {
         const script = document.createElement("script");
         script.src =
           "https://integrations.memed.com.br/modulos/plataforma.sinapse-prescricao/build/sinapse-prescricao.min.js";
 
-        script.dataset.token = MEMED_TOKEN;
+        script.dataset.token = token;
 
-        script.onload = () => {
-          console.log("✅ Script da Memed carregado");
-          iniciarIntegracao();
-        };
-
+        script.onload = iniciarIntegracao;
         document.body.appendChild(script);
       }
 
       /************************************************************
-       * 3. INICIALIZAÇÃO DA INTEGRAÇÃO
+       * 3. INICIALIZAÇÃO
        ************************************************************/
       function iniciarIntegracao() {
-        // Aguarda o módulo de prescrição ficar pronto
         MdSinapsePrescricao.event.add(
           "core:moduleInit",
           async function (module) {
             if (module.name !== "plataforma.prescricao") return;
-
-            console.log("✅ Módulo de prescrição pronto");
 
             // Envia paciente
             await MdHub.command.send(
@@ -72,27 +59,24 @@
               paciente
             );
 
-            // Abre a prescrição
+            // Abre prescrição
             MdHub.module.show("plataforma.prescricao");
           }
         );
 
-        registrarEventosObrigatorios();
+        registrarEventos();
       }
 
       /************************************************************
-       * 4. EVENTOS OBRIGATÓRIOS (MESMO SEM USAR)
+       * 4. EVENTOS (OBRIGATÓRIOS)
        ************************************************************/
-      function registrarEventosObrigatorios() {
-        // Quando a prescrição for impressa
-        MdHub.event.add("prescricaoImpressa", function (payload) {
-          console.log("📄 Prescrição impressa", payload);
-          // Não salvamos — apenas escutamos (boa prática Memed)
+      function registrarEventos() {
+        MdHub.event.add("prescricaoImpressa", function () {
+          // Apenas escutamos (boa prática Memed)
         });
 
-        // Quando a prescrição for excluída
-        MdHub.event.add("prescricaoExcluida", function (payload) {
-          console.log("🗑️ Prescrição excluída", payload);
+        MdHub.event.add("prescricaoExcluida", function () {
+          // Apenas escutamos
         });
       }
 
