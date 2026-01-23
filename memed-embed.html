@@ -1,90 +1,103 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
-  <head>
-    <meta charset="UTF-8" />
-    <title>Prescrição</title>
+<head>
+  <meta charset="UTF-8" />
+  <title>Prescrição Memed</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      padding: 16px;
+    }
+    button {
+      padding: 10px 16px;
+      font-size: 15px;
+      cursor: pointer;
+    }
+  </style>
+</head>
 
-    <style>
-      html, body {
-        margin: 0;
-        padding: 0;
-        width: 100%;
-        height: 100%;
-        overflow: hidden;
-        background: #fff;
+<body>
+
+  <button id="abrirMemed">Abrir prescrição</button>
+
+  <script>
+    const WORKER_URL =
+      "https://memed-token.rafaella-erbella.workers.dev/memed/token";
+
+    let memedReady = false;
+
+    // 1️⃣ Buscar token no backend (Cloudflare Worker)
+    async function obterTokenMemed() {
+      const resp = await fetch(WORKER_URL, {
+        method: "POST"
+      });
+
+      if (!resp.ok) {
+        throw new Error("Erro ao obter token da Memed");
       }
-    </style>
-  </head>
 
-  <body>
+      const data = await resp.json();
+      return data.token;
+    }
 
-    <script>
-      /************************************************************
-       * 1. RECEBE DADOS DO NINSAÚDE
-       ************************************************************/
-      if (!window.NINSAUDE_MEMED) {
-        console.error("❌ Dados do Ninsaúde não encontrados");
-        throw new Error("Integração Memed sem dados");
-      }
+    // 2️⃣ Carregar script da Memed dinamicamente
+    async function carregarMemed() {
+      const token = await obterTokenMemed();
 
-      const { token, paciente } = window.NINSAUDE_MEMED;
-
-      /************************************************************
-       * 2. CARREGA SCRIPT DA MEMED
-       ************************************************************/
-      function carregarMemed() {
+      return new Promise((resolve, reject) => {
         const script = document.createElement("script");
         script.src =
           "https://integrations.memed.com.br/modulos/plataforma.sinapse-prescricao/build/sinapse-prescricao.min.js";
-
         script.dataset.token = token;
 
-        script.onload = iniciarIntegracao;
+        script.onload = () => {
+          console.log("✅ Script Memed carregado");
+          resolve();
+        };
+
+        script.onerror = () => reject("Erro ao carregar script Memed");
+
         document.body.appendChild(script);
-      }
+      });
+    }
 
-      /************************************************************
-       * 3. INICIALIZAÇÃO
-       ************************************************************/
-      function iniciarIntegracao() {
-        MdSinapsePrescricao.event.add(
-          "core:moduleInit",
-          async function (module) {
-            if (module.name !== "plataforma.prescricao") return;
-
-            // Envia paciente
-            await MdHub.command.send(
-              "plataforma.prescricao",
-              "setPaciente",
-              paciente
-            );
-
-            // Abre prescrição
-            MdHub.module.show("plataforma.prescricao");
+    // 3️⃣ Inicialização da Memed
+    function inicializarMemed() {
+      MdSinapsePrescricao.event.add(
+        "core:moduleInit",
+        async function (module) {
+          if (module.name === "plataforma.prescricao") {
+            console.log("✅ Memed pronta");
+            memedReady = true;
           }
-        );
+        }
+      );
+    }
 
-        registrarEventos();
-      }
+    // 4️⃣ Clique do botão
+    document
+      .getElementById("abrirMemed")
+      .addEventListener("click", async () => {
+        try {
+          console.log("🟢 Clique no botão");
 
-      /************************************************************
-       * 4. EVENTOS (OBRIGATÓRIOS)
-       ************************************************************/
-      function registrarEventos() {
-        MdHub.event.add("prescricaoImpressa", function () {
-          // Apenas escutamos (boa prática Memed)
-        });
+          if (!window.MdHub) {
+            await carregarMemed();
+            inicializarMemed();
+          }
 
-        MdHub.event.add("prescricaoExcluida", function () {
-          // Apenas escutamos
-        });
-      }
+          if (!memedReady) {
+            console.log("⏳ Aguardando Memed ficar pronta…");
+            return;
+          }
 
-      /************************************************************
-       * 5. START
-       ************************************************************/
-      carregarMemed();
-    </script>
+          // Apenas abre a Memed (sem paciente ainda)
+          MdHub.module.show("plataforma.prescricao");
+        } catch (err) {
+          console.error("❌ Erro ao abrir Memed", err);
+        }
+      });
+  </script>
 
-  </body>
+</body>
 </html>
