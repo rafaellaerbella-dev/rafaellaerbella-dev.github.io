@@ -1,114 +1,95 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-  <meta charset="UTF-8" />
-  <title>Prescrição Memed</title>
-</head>
+<script>
+  const WORKER_URL =
+    "https://memed-token.rafaella-erbella.workers.dev/memed/token";
 
-<body>
-  <button id="abrirMemed">Abrir prescrição</button>
+  // Lê parâmetros da URL (ex.: ?nome=Joao&cpf=11122233344)
+  const params = new URLSearchParams(window.location.search);
 
-  <!-- Script da Memed será carregado dinamicamente com o token,
-       mas precisamos ter o container da página -->
-  <div id="memed-container"></div>
+  const paciente = {
+    idExterno: params.get("idExterno") || "paciente-teste-001",
+    nome: params.get("nome") || "Paciente Teste",
+    telefone: params.get("telefone") || "11999999999",
+    cpf: params.get("cpf") || "43328886850",
+    nome_social: params.get("nome_social") || "",
+    endereco: params.get("endereco") || "Rua Exemplo, 123 - São Paulo/SP",
+    categoriesConditions: [] // por enquanto vazio
+  };
 
-  <script>
-    const WORKER_URL =
-      "https://memed-token.rafaella-erbella.workers.dev/memed/token";
+  let memedCarregada = false;
 
-    const paciente = {
-      idExterno: "algum_tipo_de_hash_ou_id",
-      nome: "Marinaldo Marina Mariam",
-      telefone: "99999999999",
-      cpf: "99999999999",
-      nome_social: "Três Emes",
-      endereco: "Rua dos Emes, 03",
-      categoriesConditions: [1]
-    };
+  async function obterTokenMemed() {
+    const resp = await fetch(WORKER_URL);
+    if (!resp.ok) throw new Error("Erro ao obter token Memed");
+    const { token } = await resp.json();
+    return token;
+  }
 
-    let memedCarregada = false;
+  async function carregarScriptMemed() {
+    const token = await obterTokenMemed();
 
-    async function obterTokenMemed() {
-      const resp = await fetch(WORKER_URL);
-      if (!resp.ok) throw new Error("Erro ao obter token Memed");
-      const { token } = await resp.json();
-      return token;
-    }
+    return new Promise((resolve, reject) => {
+      const script = document.createElement("script");
+      script.src =
+        "https://integrations.memed.com.br/modulos/plataforma.sinapse-prescricao/build/sinapse-prescricao.min.js";
+      script.dataset.token = token;
 
-    async function carregarScriptMemed() {
-      const token = await obterTokenMemed();
+      script.onload = () => {
+        console.log("✅ Script Memed carregou");
+        resolve();
+      };
+      script.onerror = (e) => {
+        console.error("❌ Script Memed NÃO carregou", e);
+        reject(e);
+      };
 
-      return new Promise((resolve, reject) => {
-        const script = document.createElement("script");
-        script.src =
-          "https://integrations.memed.com.br/modulos/plataforma.sinapse-prescricao/build/sinapse-prescricao.min.js";
-        script.dataset.token = token;
+      document.body.appendChild(script);
+    });
+  }
 
-        script.onload = () => {
-          console.log("✅ Script Memed carregou");
-          resolve();
-        };
-        script.onerror = (e) => {
-          console.error("❌ Script Memed NÃO carregou", e);
-          reject(e);
-        };
+  function configurarEventosMemed() {
+    MdSinapsePrescricao.event.add("core:moduleInit", async function (module) {
+      console.log("📦 core:moduleInit:", module.name);
 
-        document.body.appendChild(script);
-      });
-    }
+      if (module.name === "plataforma.prescricao") {
+        console.log("✅ Memed pronta (plataforma.prescricao)");
 
-    function configurarEventosMemed() {
-      MdSinapsePrescricao.event.add("core:moduleInit", async function (module) {
-        console.log("📦 core:moduleInit:", module.name);
+        await MdHub.command.send(
+          "plataforma.prescricao",
+          "setPaciente",
+          paciente
+        );
 
-        if (module.name === "plataforma.prescricao") {
-          console.log("✅ Memed pronta (plataforma.prescricao)");
+        // Por enquanto vamos comentar os exemplos de alergia e item fixo
+        // await MdHub.command.send("plataforma.prescricao", "setAllergy", [622]);
+        // await MdHub.command.send("plataforma.prescricao", "addItem", { ... });
 
-          await MdHub.command.send(
-            "plataforma.prescricao",
-            "setPaciente",
-            paciente
-          );
+        await MdHub.command.send(
+          "plataforma.prescricao",
+          "setFeatureToggle",
+          {
+            editPatient: false,
+            guidesOnboarding: false
+          }
+        );
 
-          await MdHub.command.send("plataforma.prescricao", "setAllergy", [622]);
+        MdHub.module.show("plataforma.prescricao");
+      }
+    });
+  }
 
-          await MdHub.command.send("plataforma.prescricao", "addItem", {
-            id: "w4103",
-            posologia: "<p>HTML da posologia</p>",
-            quantidade: 1,
-            unit: "embalagens"
-          });
-
-          await MdHub.command.send(
-            "plataforma.prescricao",
-            "setFeatureToggle",
-            {
-              editPatient: false,
-              guidesOnboarding: false
-            }
-          );
-
+  document
+    .getElementById("abrirMemed")
+    .addEventListener("click", async () => {
+      try {
+        if (!memedCarregada) {
+          await carregarScriptMemed();
+          configurarEventosMemed();
+          memedCarregada = true;
+        } else {
           MdHub.module.show("plataforma.prescricao");
         }
-      });
-    }
-
-    document
-      .getElementById("abrirMemed")
-      .addEventListener("click", async () => {
-        try {
-          if (!memedCarregada) {
-            await carregarScriptMemed();
-            configurarEventosMemed();
-            memedCarregada = true;
-          } else {
-            // se já carregou, só mostra de novo
-            MdHub.module.show("plataforma.prescricao");
-          }
-        } catch (err) {
-          console.error("❌ Erro ao abrir Memed", err);
-        }
-      });
-  </script>
-</body>
-</html>
+      } catch (err) {
+        console.error("❌ Erro ao abrir Memed", err);
+      }
+    });
+</script>
