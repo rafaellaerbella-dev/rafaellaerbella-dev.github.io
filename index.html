@@ -1,164 +1,191 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8" />
-  <title>Prescrição Memed</title>
-  <style>
-    body { margin: 0; padding: 0; }
-    /* Tamanhos mínimos obrigatórios */
-    #memed-container {
-      min-width: 820px;
-      min-height: 700px;
-      width: 100%;
-      height: 100vh;
-    }
-    #abrirMemed {
-      display: none; /* Ocultar botão - vai carregar automaticamente */
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Integração Memed - Ninsaúde</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+        }
+        
+        #prescricao-memed {
+            position: relative;
+            width: 100%;
+            /* Dimensões mínimas conforme documentação Memed */
+            min-width: 820px;
+            min-height: 700px;
+            /* Usar altura total disponível */
+            height: 100vh;
+        }
+        
+        #loading {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 18px;
+            color: #666;
+        }
+        
+        #error {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            padding: 20px;
+            background: #ffebee;
+            border: 1px solid #ef5350;
+            border-radius: 4px;
+            color: #c62828;
+            display: none;
+        }
+    </style>
 </head>
-
 <body>
-  <button id="abrirMemed">Abrir prescrição</button>
-  <div id="memed-container" data-container></div>
+    <div id="loading">Carregando prescrição Memed...</div>
+    <div id="error"></div>
+    <!-- Container onde a prescrição será incorporada -->
+    <div id="prescricao-memed"></div>
 
-  <script>
-    const WORKER_URL = "https://memed-token.rafaella-erbella.workers.dev/memed/token";
-    const EVENTOS_URL = "https://memed-token.rafaella-erbella.workers.dev/ninsaude/memed/eventos";
-
-    const params = new URLSearchParams(window.location.search);
-
-    const paciente = {
-      idExterno: params.get("idExterno") || "paciente-teste-001",
-      nome: params.get("nome") || "Paciente Teste",
-      telefone: params.get("telefone") || "11999999999",
-      cpf: params.get("cpf") || "43328886850",
-      email: params.get("email") || "paciente@email.com",
-      data_nascimento: params.get("data_nascimento") || "1990-01-01",
-      nome_social: params.get("nome_social") || "",
-      endereco: params.get("endereco") || "Rua Exemplo, 123 - São Paulo/SP"
-    };
-
-    let memedCarregada = false;
-
-    async function obterTokenMemed() {
-      const resp = await fetch(WORKER_URL);
-      if (!resp.ok) throw new Error("Erro ao obter token Memed");
-      const { token } = await resp.json();
-      return token;
-    }
-
-    async function carregarScriptMemed() {
-      const token = await obterTokenMemed();
-
-      return new Promise((resolve, reject) => {
-        const script = document.createElement("script");
-        script.src = "https://integrations.memed.com.br/modulos/plataforma.sinapse-prescricao/build/sinapse-prescricao.min.js";
-        script.dataset.token = token;
-        script.dataset.container = ""; // Modo incorporado
-
-        script.onload = () => {
-          console.log("✅ Script Memed carregou");
-          resolve();
-        };
-        script.onerror = (e) => {
-          console.error("❌ Script Memed NÃO carregou", e);
-          reject(e);
-        };
-
-        document.body.appendChild(script);
-      });
-    }
-
-    function configurarEventosMemed() {
-      // Módulo inicializou
-      MdSinapsePrescricao.event.add("core:moduleInit", async (module) => {
-        console.log("📦 core:moduleInit:", module.name);
-
-        if (module.name === "plataforma.prescricao") {
-          console.log("✅ Memed pronta");
-
-          // Enviar paciente
-          await MdHub.command.send("plataforma.prescricao", "setPaciente", paciente);
-
-          // Configurar features
-          await MdHub.command.send("plataforma.prescricao", "setFeatureToggle", {
-            editPatient: false,
-            guidesOnboarding: false
-          });
-
-          // Mostrar
-          MdHub.module.show("plataforma.prescricao");
+    <script>
+        // Função para obter parâmetros da URL
+        function getUrlParams() {
+            const params = new URLSearchParams(window.location.search);
+            return {
+                pacienteNome: params.get('pacienteNome') || params.get('nome'),
+                pacienteEmail: params.get('pacienteEmail') || params.get('email'),
+                pacienteTelefone: params.get('pacienteTelefone') || params.get('telefone'),
+                pacienteCpf: params.get('pacienteCpf') || params.get('cpf'),
+                pacienteDataNascimento: params.get('pacienteDataNascimento') || params.get('nascimento'),
+                prescritorId: params.get('prescritorId'),
+                pacienteId: params.get('pacienteId')
+            };
         }
-      });
 
-      // Prescrição impressa (OBRIGATÓRIO AUDITORIA)
-      MdSinapsePrescricao.event.add("prescricao:imprimir", async (prescricao) => {
-        console.log("📄 Prescrição impressa:", prescricao);
-
-        try {
-          const response = await fetch(EVENTOS_URL, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              evento: "prescricaoImpressa",
-              paciente: paciente,
-              prescricao: prescricao,
-              timestamp: new Date().toISOString()
-            })
-          });
-
-          if (response.ok) {
-            console.log("✅ Prescrição salva no Ninsaúde");
-          } else {
-            console.error("❌ Erro ao salvar");
-          }
-        } catch (error) {
-          console.error("❌ Erro:", error);
+        function showError(message) {
+            document.getElementById('loading').style.display = 'none';
+            const errorDiv = document.getElementById('error');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+            console.error(message);
         }
-      });
 
-      // Prescrição excluída (OBRIGATÓRIO AUDITORIA)
-      MdSinapsePrescricao.event.add("prescricao:excluir", async (prescricao) => {
-        console.log("🗑️ Prescrição excluída:", prescricao);
+        // Buscar token do Worker
+        async function loadMemed() {
+            try {
+                const params = getUrlParams();
+                
+                // Validar prescritor obrigatório
+                if (!params.prescritorId) {
+                    showError('ID do prescritor é obrigatório');
+                    return;
+                }
 
-        try {
-          await fetch(EVENTOS_URL, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              evento: "prescricaoExcluida",
-              paciente: paciente,
-              prescricao: prescricao,
-              timestamp: new Date().toISOString()
-            })
-          });
+                console.log('Buscando token para prescritor:', params.prescritorId);
+                
+                const response = await fetch(`/api/token?prescritorId=${params.prescritorId}`);
+                
+                if (!response.ok) {
+                    const error = await response.json();
+                    showError(`Erro ao buscar token: ${error.message || response.statusText}`);
+                    return;
+                }
 
-          console.log("✅ Exclusão registrada");
-        } catch (error) {
-          console.error("❌ Erro:", error);
+                const data = await response.json();
+                console.log('Token obtido com sucesso');
+                
+                // Criar e carregar script Memed no modo INCORPORADO
+                const script = document.createElement('script');
+                script.src = 'https://integra.memed.com.br/modulos/plataforma.sinapse-prescricao/build/sinapse-prescricao.min.js';
+                script.dataset.token = data.token;
+                script.dataset.container = 'prescricao-memed';  // MODO INCORPORADO
+                
+                script.onload = function() {
+                    console.log('Script Memed carregado');
+                    document.getElementById('loading').style.display = 'none';
+                    
+                    // Aguardar inicialização do MdHub
+                    window.addEventListener('message', function(event) {
+                        if (event.data && event.data.type === 'core:moduleInit') {
+                            console.log('Memed inicializado:', event.data);
+                            
+                            // Configurar paciente se dados disponíveis
+                            if (params.pacienteNome) {
+                                const paciente = {
+                                    nome: params.pacienteNome
+                                };
+                                
+                                // Campos opcionais
+                                if (params.pacienteEmail) paciente.email = params.pacienteEmail;
+                                if (params.pacienteTelefone) paciente.telefone = params.pacienteTelefone;
+                                if (params.pacienteCpf) paciente.cpf = params.pacienteCpf;
+                                if (params.pacienteDataNascimento) {
+                                    paciente.nascimento = params.pacienteDataNascimento;
+                                }
+                                if (params.pacienteId) {
+                                    paciente.idExterno = String(params.pacienteId);
+                                }
+                                
+                                console.log('Configurando paciente:', paciente);
+                                window.postMessage({
+                                    type: 'setPaciente',
+                                    data: paciente
+                                }, '*');
+                            }
+                        }
+                        
+                        // Evento: Prescrição impressa/assinada
+                        if (event.data && event.data.type === 'prescricao:imprimir') {
+                            console.log('Prescrição assinada:', event.data.data);
+                            // Notificar Ninsaúde via webhook ou salvar
+                            notificarNinsaude('prescricao_criada', event.data.data);
+                        }
+                        
+                        // Evento: Prescrição excluída
+                        if (event.data && event.data.type === 'prescricao:excluir') {
+                            console.log('Prescrição excluída:', event.data.data);
+                            notificarNinsaude('prescricao_excluida', event.data.data);
+                        }
+                    });
+                };
+                
+                script.onerror = function() {
+                    showError('Erro ao carregar script da Memed');
+                };
+                
+                document.body.appendChild(script);
+                
+            } catch (error) {
+                showError(`Erro: ${error.message}`);
+            }
         }
-      });
-    }
 
-    // Carregar automaticamente quando página abre
-    window.addEventListener('DOMContentLoaded', async () => {
-      try {
-        await carregarScriptMemed();
-        configurarEventosMemed();
-        memedCarregada = true;
-      } catch (err) {
-        console.error("❌ Erro ao abrir Memed", err);
-        alert("Erro ao carregar Memed. Verifique se o serviço está disponível.");
-      }
-    });
+        // Notificar Ninsaúde sobre eventos
+        async function notificarNinsaude(evento, dados) {
+            try {
+                await fetch('/api/webhook', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        evento: evento,
+                        dados: dados,
+                        timestamp: new Date().toISOString()
+                    })
+                });
+            } catch (error) {
+                console.error('Erro ao notificar Ninsaúde:', error);
+            }
+        }
 
-    // Manter funcionalidade do botão (caso queira testar)
-    document.getElementById("abrirMemed").addEventListener("click", async () => {
-      if (memedCarregada) {
-        MdHub.module.show("plataforma.prescricao");
-      }
-    });
-  </script>
+        // Carregar quando DOM estiver pronto
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', loadMemed);
+        } else {
+            loadMemed();
+        }
+    </script>
 </body>
 </html>
