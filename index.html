@@ -162,7 +162,7 @@
             // Notificar Ninsaúde sobre eventos
             async function notificarNinsaude(evento, dados) {
                 try {
-                    await fetch('https://SEU-WORKER.workers.dev/api/webhook', {
+                    await fetch('https://memed-token.rafaella-erbella.workers.dev/api/webhook', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
