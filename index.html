@@ -126,6 +126,15 @@
                             console.log('Configurando paciente:', paciente);
                             MdHub.command.send('plataforma.prescricao', 'setPaciente', paciente);
                         }
+
+                        };
+
+                        script.onerror = function() {
+                            showError('Erro ao carregar script da Memed');
+                        };
+                        
+                        document.body.appendChild(script);
+
                         
                         // Abrir módulo de prescrição
                         MdHub.module.show('plataforma.prescricao');
