@@ -1,176 +1,94 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Integração Memed - Ninsaúde</title>
-    <style>
-        body {
-            margin: 0;
-            padding: 0;
-            font-family: Arial, sans-serif;
-        }
-
-        #prescricao-memed {
-            position: relative;
-            width: 100%;
-            min-width: 820px;
-            min-height: 700px;
-            height: 100vh;
-        }
-
-        #loading {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            font-size: 18px;
-            color: #666;
-        }
-
-        #error {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            padding: 20px;
-            background: #ffebee;
-            border: 1px solid #ef5350;
-            border-radius: 4px;
-            color: #c62828;
-            display: none;
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Integração Memed</title>
 </head>
 <body>
-    <div id="loading">Carregando prescrição Memed...</div>
-    <div id="error"></div>
-    <div id="prescricao-memed"></div>
+  <div id="loading">Carregando prescrição Memed...</div>
+  <div id="error" style="display:none;color:#c62828;"></div>
 
-    <script>
-        function getUrlParams() {
-            const params = new URLSearchParams(window.location.search);
-            return {
-                pacienteNome: params.get('pacienteNome') || params.get('nome'),
-                pacienteEmail: params.get('pacienteEmail') || params.get('email'),
-                pacienteTelefone: params.get('pacienteTelefone') || params.get('telefone'),
-                pacienteCpf: params.get('pacienteCpf') || params.get('cpf'),
-                pacienteDataNascimento: params.get('pacienteDataNascimento') || params.get('nascimento'),
-                prescritorId: params.get('prescritorId'),
-                pacienteId: params.get('pacienteId')
-            };
-        }
+  <script>
+    function getUrlParams() {
+      const p = new URLSearchParams(window.location.search);
+      return {
+        prescritorId: p.get("prescritorId"),
+        pacienteId: p.get("pacienteId"),
+        nome: p.get("pacienteNome") || p.get("nome"),
+        email: p.get("pacienteEmail") || p.get("email"),
+        telefone: p.get("pacienteTelefone") || p.get("telefone"),
+        cpf: p.get("pacienteCpf") || p.get("cpf"),
+        nascimento: p.get("pacienteDataNascimento") || p.get("nascimento"),
+        endereco: p.get("endereco")
+      };
+    }
 
-        function showError(message) {
-            document.getElementById('loading').style.display = 'none';
-            const errorDiv = document.getElementById('error');
-            errorDiv.textContent = message;
-            errorDiv.style.display = 'block';
-            console.error(message);
-        }
+    function showError(msg) {
+      document.getElementById("loading").style.display = "none";
+      const e = document.getElementById("error");
+      e.style.display = "block";
+      e.textContent = msg;
+      console.error(msg);
+    }
 
-        async function loadMemed() {
-            try {
-                const params = getUrlParams();
+    async function getToken(prescritorId) {
+      const url = `https://memed-token.rafaella-erbella.workers.dev/api/token?prescritorId=${encodeURIComponent(prescritorId)}`;
+      const r = await fetch(url);
+      if (!r.ok) throw new Error(`Erro token: HTTP ${r.status}`);
+      const j = await r.json();
+      if (!j.token) throw new Error("Resposta sem token");
+      return j.token;
+    }
 
-                if (!params.prescritorId) {
-                    showError('ID do prescritor é obrigatório');
-                    return;
-                }
+    async function loadMemed() {
+      const params = getUrlParams();
+      if (!params.prescritorId) return showError("Falta ?prescritorId=");
 
-                console.log('Buscando token para prescritor:', params.prescritorId);
+      let token;
+      try {
+        token = await getToken(params.prescritorId);
+      } catch (err) {
+        return showError(err.message);
+      }
 
-                const response = await fetch(`https://memed-token.rafaella-erbella.workers.dev/api/token?prescritorId=${params.prescritorId}`);
+      const script = document.createElement("script");
+      script.src = "https://integrations.memed.com.br/modulos/plataforma.sinapse-prescricao/build/sinapse-prescricao.min.js";
+      script.dataset.token = token;
 
-                if (!response.ok) {
-                    const error = await response.json();
-                    showError(`Erro ao buscar token: ${error.message || response.statusText}`);
-                    return;
-                }
+      script.onload = () => {
+        // Quando o módulo estiver pronto, setamos paciente e mostramos a prescrição
+        MdSinapsePrescricao.event.add("core:moduleInit", async function(module) {
+          if (module.name !== "plataforma.prescricao") return;
 
-                const data = await response.json();
-                console.log('Token obtido com sucesso');
+          const paciente = {};
+          if (params.pacienteId) paciente.idExterno = String(params.pacienteId);
+          if (params.nome) paciente.nome = params.nome;
+          if (params.email) paciente.email = params.email;
+          if (params.telefone) paciente.telefone = params.telefone;
+          if (params.cpf) paciente.cpf = params.cpf;
+          if (params.nascimento) paciente.data_nascimento = params.nascimento; // dd/mm/yyyy se você estiver passando assim
+          if (params.endereco) paciente.endereco = params.endereco;
 
-                const script = document.createElement('script');
-                script.src = 'https://integrations.memed.com.br/modulos/plataforma.sinapse-prescricao/build/sinapse-prescricao.min.js';
-                script.dataset.token = data.token;
-                script.dataset.color = '#00a8ff';
+          // Se você quiser forçar campos obrigatórios:
+          if (!paciente.nome) return showError("Falta nome do paciente");
+          if (!paciente.telefone) return showError("Falta telefone do paciente");
 
-                script.onload = function() {
-                    console.log('Script Memed carregado');
-                    
-                    setTimeout(() => {
-                        if (typeof MdHub !== 'undefined') {
-                            document.getElementById('loading').style.display = 'none';
-                            console.log('MdHub disponível, abrindo módulo');
+          try {
+            await MdHub.command.send("plataforma.prescricao", "setPaciente", paciente);
+            document.getElementById("loading").style.display = "none";
+            MdHub.module.show("plataforma.prescricao");
+          } catch (e) {
+            showError("Falha no setPaciente: " + (e?.message || String(e)));
+          }
+        });
+      };
 
-                            if (params.pacienteNome) {
-                                const paciente = {
-                                    external_id: params.pacienteId || 'temp_' + Date.now(),
-                                    name: params.pacienteNome
-                                };
-                                if (params.pacienteEmail) paciente.email = params.pacienteEmail;
-                                if (params.pacienteTelefone) paciente.telephone = params.pacienteTelefone;
-                                if (params.pacienteCpf) paciente.cpf = params.pacienteCpf;
-                                if (params.pacienteDataNascimento) paciente.birthday = params.pacienteDataNascimento;
+      script.onerror = () => showError("Erro ao carregar script da Memed");
+      document.body.appendChild(script);
+    }
 
-                                console.log('Configurando paciente:', paciente);
-                                MdHub.command.send('plataforma.prescricao', 'setPaciente', paciente);
-                            }
-
-                            MdHub.module.show('plataforma.prescricao');
-
-                            MdHub.event.add('plataforma.prescricao', 'core:moduleInit', (data) => {
-                                console.log('Módulo inicializado:', data);
-                            });
-
-                            MdHub.event.add('plataforma.prescricao', 'prescricao:imprimir', (data) => {
-                                console.log('Prescrição assinada:', data);
-                                notificarNinsaude('prescricao_criada', data);
-                            });
-
-                            MdHub.event.add('plataforma.prescricao', 'prescricao:excluir', (data) => {
-                                console.log('Prescrição excluída:', data);
-                                notificarNinsaude('prescricao_excluida', data);
-                            });
-                        } else {
-                            showError('MdHub não foi carregado corretamente');
-                        }
-                    }, 1000);
-                };
-
-                script.onerror = function() {
-                    showError('Erro ao carregar script da Memed');
-                };
-
-                document.body.appendChild(script);
-
-            } catch (error) {
-                showError(`Erro: ${error.message}`);
-            }
-        }
-
-        async function notificarNinsaude(evento, dados) {
-            try {
-                await fetch('https://memed-token.rafaella-erbella.workers.dev/api/webhook', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        evento: evento,
-                        dados: dados,
-                        timestamp: new Date().toISOString()
-                    })
-                });
-            } catch (error) {
-                console.error('Erro ao notificar Ninsaúde:', error);
-            }
-        }
-
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', loadMemed);
-        } else {
-            loadMemed();
-        }
-    </script>
+    loadMemed();
+  </script>
 </body>
 </html>
