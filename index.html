@@ -3,48 +3,30 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="referrer" content="strict-origin-when-cross-origin" />
   <title>Prescrição Memed</title>
-
   <style>
-    body { font-family: Arial, sans-serif; margin: 0; }
-    #topbar { padding: 12px 16px; border-bottom: 1px solid #eee; }
-    #loading { padding: 12px 16px; color: #555; }
+    body { font-family: Arial, sans-serif; margin: 16px; }
+    #loading { padding: 12px; color: #555; }
     #error {
-      display:none; margin: 12px 16px; padding:12px; border-radius:6px;
+      display:none; padding:12px; border-radius:6px;
       background:#ffebee; border:1px solid #ef5350; color:#c62828;
       white-space: pre-wrap;
-    }
-
-    /* Container EMBEDDED (requisito Memed: min 820x700) */
-    #memed-container {
-      position: relative;
-      width: 100%;
-      height: calc(100vh - 52px);
-      min-width: 820px;
-      min-height: 700px;
-      overflow: hidden;
     }
   </style>
 </head>
 <body>
-  <div id="topbar">Prescrição</div>
   <div id="loading">Carregando prescrição Memed…</div>
   <div id="error"></div>
 
-  <!-- Embedded -->
-  <div id="memed-container"></div>
-
   <script>
-    // PRODUÇÃO: script correto
+    // ====== CONFIG (produção) ======
+    const TOKEN_ENDPOINT = "https://memed-api.raeclinicadigital.com/api/token";
     const MEMED_SCRIPT_URL = "https://partners.memed.com.br/integration.js";
 
-    // Seu Worker (token sempre “fresh”)
-    const TOKEN_ENDPOINT = "https://memed-api.raeclinicadigital.com/api/token";
-
-    // Onde a Memed vai renderizar (embedded)
-    const MEMED_CONTAINER_ID = "memed-container";
-
+    // ====== Helpers ======
     function qs(k){ return new URLSearchParams(location.search).get(k); }
+    function onlyDigits(s){ return (s || "").replace(/\D+/g, ""); }
 
     function showError(msg){
       document.getElementById("loading").style.display = "none";
@@ -62,126 +44,85 @@
         cache: "no-store",
       });
 
-      let j = {};
-      try { j = await r.json(); } catch {}
+      const j = await r.json().catch(() => ({}));
 
-      if (r.status === 503 && j.error === "memed_unavailable") {
-        throw new Error("Memed indisponível no momento. Tente novamente mais tarde.");
-      }
       if (!r.ok) {
         throw new Error(`Erro ao obter token (HTTP ${r.status}): ${JSON.stringify(j)}`);
       }
-      if (!j.token) {
-        throw new Error("Resposta do backend não retornou token.");
+      if (!j || !j.token) {
+        throw new Error("Resposta do memed-worker não retornou token.");
       }
       return j.token;
     }
 
-    function loadMemedScriptOnce({ token }){
-      // Evita carregar o script mais de uma vez
-      if (window.__MEMED_SCRIPT_LOADED__) return Promise.resolve();
+    // Monta paciente SOMENTE se tiver obrigatórios.
+    // Obrigatórios (doc): idExterno, nome, cpf (só dígitos), sexo.
+    function buildPacienteFromQS(){
+      const idExterno = qs("pacienteId") ? String(qs("pacienteId")) : "";
+      const nome = (qs("nome") || "").trim();
+      const cpf = onlyDigits(qs("cpf"));
+      const sexo = (qs("sexo") || "").trim(); // mande "F"/"M" ou "Feminino"/"Masculino"
 
-      return new Promise((resolve, reject) => {
-        const s = document.createElement("script");
-        s.src = MEMED_SCRIPT_URL;
+      if (!idExterno || !nome || !cpf || !sexo) return null;
 
-        // Token do prescritor (produçao)
-        s.dataset.token = token;
+      const paciente = { idExterno, nome, cpf, sexo };
 
-        // Embedded container (recomendado para aba do seu PEP)
-        s.dataset.container = MEMED_CONTAINER_ID;
+      const telefone = onlyDigits(qs("telefone"));
+      if (telefone) paciente.telefone = telefone;
 
-        s.onload = () => {
-          window.__MEMED_SCRIPT_LOADED__ = true;
-          resolve();
-        };
-        s.onerror = () => reject(new Error("Erro ao carregar o script da Memed (produção)."));
-        document.body.appendChild(s);
-      });
-    }
+      const nasc = (qs("nascimento") || "").trim(); // dd/mm/AAAA
+      if (nasc) paciente.data_nascimento = nasc;
 
-    function attachHandlersOnce(){
-      if (window.__MEMED_HANDLERS_ATTACHED__) return;
-      window.__MEMED_HANDLERS_ATTACHED__ = true;
+      const email = (qs("email") || "").trim();
+      if (email) paciente.email = email;
 
-      // Aguarda inicialização do módulo
-      MdSinapsePrescricao.event.add("core:moduleInit", async (module) => {
-        if (module?.name !== "plataforma.prescricao") return;
+      const nome_social = (qs("nome_social") || "").trim();
+      if (nome_social) paciente.nome_social = nome_social;
 
-        // (Opcional) pré-preencher paciente via querystring
-        const paciente = {};
-        const idExt = qs("pacienteId"); if (idExt) paciente.idExterno = String(idExt);
-        const nome = qs("nome"); if (nome) paciente.nome = nome;
-        const telefone = qs("telefone"); if (telefone) paciente.telefone = telefone;
-        const cpf = qs("cpf"); if (cpf) paciente.cpf = cpf;
-        const nasc = qs("nascimento"); if (nasc) paciente.data_nascimento = nasc;
+      const raca = (qs("raca") || "").trim(); // "branca", "parda", etc (minúsculas)
+      if (raca) paciente.raca = raca.toLowerCase();
 
-        if (Object.keys(paciente).length) {
-          try {
-            await MdHub.command.send("plataforma.prescricao", "setPaciente", paciente);
-          } catch (e) {
-            console.warn("Falha setPaciente:", e);
-          }
-        }
-
-        // (Auditoria) Eventos essenciais — deixe preparado
-        // IMPORTANTE: seu /api/webhook hoje exige sessão por cookie.
-        // Se você ainda não estiver autenticando aqui, comente essa parte por enquanto
-        // e a gente ajusta o webhook depois (HMAC é o mais auditável).
-        /*
-        MdHub.event.add("prescricaoImpressa", async (prescriptionData) => {
-          try {
-            await fetch("https://api.raeclinicadigital.com/api/webhook", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                type: "prescricaoImpressa",
-                ts: new Date().toISOString(),
-                prescritorId: qs("prescritorId"),
-                pacienteId: qs("pacienteId"),
-                prescriptionData
-              })
-            });
-          } catch (e) { console.warn("Falha webhook prescricaoImpressa:", e); }
-        });
-
-        MdHub.event.add("prescricaoExcluida", async (prescriptionId) => {
-          try {
-            await fetch("https://api.raeclinicadigital.com/api/webhook", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                type: "prescricaoExcluida",
-                ts: new Date().toISOString(),
-                prescritorId: qs("prescritorId"),
-                pacienteId: qs("pacienteId"),
-                prescriptionId
-              })
-            });
-          } catch (e) { console.warn("Falha webhook prescricaoExcluida:", e); }
-        });
-        */
-
-        // Pronto
-        document.getElementById("loading").style.display = "none";
-
-        // Em embedded, em geral já “aparece” no container,
-        // mas manter o show é ok (não recarrega o script)
-        try { MdHub.module.show("plataforma.prescricao"); } catch {}
-      });
+      return paciente;
     }
 
     async function main(){
       const prescritorId = qs("prescritorId");
-      if (!prescritorId) return showError("Falta ?prescritorId=<external_id>");
+      if (!prescritorId) return showError("Falta ?prescritorId=<id>");
 
+      let token;
       try {
-        const token = await getToken(prescritorId);
-        await loadMemedScriptOnce({ token });
-        attachHandlersOnce();
+        token = await getToken(prescritorId);
       } catch (e) {
-        showError(e?.message || String(e));
+        return showError(e.message || String(e));
       }
+
+      // Injeta o script da Memed (produção)
+      const s = document.createElement("script");
+      s.src = MEMED_SCRIPT_URL;
+      s.dataset.token = token;
+
+      s.onload = () => {
+        // Só execute comandos após o módulo carregar
+        MdSinapsePrescricao.event.add("core:moduleInit", async (module) => {
+          if (module.name !== "plataforma.prescricao") return;
+
+          const paciente = buildPacienteFromQS();
+          if (paciente) {
+            try {
+              await MdHub.command.send("plataforma.prescricao", "setPaciente", paciente);
+            } catch (e) {
+              console.warn("Falha setPaciente:", e);
+              // Não bloqueia abertura da Memed
+            }
+          }
+
+          document.getElementById("loading").style.display = "none";
+          MdHub.module.show("plataforma.prescricao");
+        });
+      };
+
+      s.onerror = () => showError("Erro ao carregar script da Memed (produção).");
+      document.body.appendChild(s);
     }
 
     main();
