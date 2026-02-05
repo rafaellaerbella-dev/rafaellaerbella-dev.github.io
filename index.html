@@ -86,6 +86,22 @@
     }
 
     async function main(){
+      // Safari: Pedir permissão de cookies de terceiros
+      if (document.hasStorageAccess && document.requestStorageAccess) {
+        try {
+          const hasAccess = await document.hasStorageAccess();
+          if (!hasAccess) {
+            console.log("Safari: Solicitando Storage Access...");
+            await document.requestStorageAccess();
+            console.log("Safari: Storage Access concedido!");
+          } else {
+            console.log("Safari: Storage Access já disponível");
+          }
+        } catch (e) {
+          console.warn("Safari: Storage Access negado ou não suportado:", e);
+        }
+      }
+
       const prescritorId = qs("prescritorId");
       if (!prescritorId) return showError("Falta ?prescritorId=<id>");
 
