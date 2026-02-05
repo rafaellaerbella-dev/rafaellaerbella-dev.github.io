@@ -134,6 +134,47 @@
 
           document.getElementById("loading").style.display = "none";
           MdHub.module.show("plataforma.prescricao");
+
+          // Safari: Envia prescrição via postMessage para a janela pai (se aberto via window.open)
+          MdSinapsePrescricao.event.add("prescricaoImpressa", function(prescriptionData) {
+            console.log("[github index.html] prescricaoImpressa recebido:", prescriptionData);
+
+            // Tenta extrair medicamentos de vários caminhos possíveis
+            let medicamentos = [];
+            if (prescriptionData.medicamentos) {
+              medicamentos = prescriptionData.medicamentos;
+            } else if (prescriptionData.prescricao?.medicamentos) {
+              medicamentos = prescriptionData.prescricao.medicamentos;
+            } else if (prescriptionData["prescrição"]?.medicamentos) {
+              medicamentos = prescriptionData["prescrição"].medicamentos;
+            } else if (Array.isArray(prescriptionData)) {
+              medicamentos = prescriptionData;
+            }
+
+            const atendimentoId = qs("atendimentoId");
+            const pacienteId = qs("pacienteId");
+
+            const payload = {
+              type: "prescricaoMemed",
+              atendimentoId: atendimentoId,
+              pacienteId: pacienteId,
+              prescriptionData: prescriptionData,
+              medicamentos: medicamentos,
+              timestamp: new Date().toISOString()
+            };
+
+            // Envia para window.opener (se aberto via window.open)
+            if (window.opener && !window.opener.closed) {
+              console.log("[github index.html] Enviando postMessage para opener:", payload);
+              window.opener.postMessage(payload, "*");
+            }
+
+            // Envia para parent (se em iframe)
+            if (window.parent && window.parent !== window) {
+              console.log("[github index.html] Enviando postMessage para parent:", payload);
+              window.parent.postMessage(payload, "*");
+            }
+          });
         });
       };
 
