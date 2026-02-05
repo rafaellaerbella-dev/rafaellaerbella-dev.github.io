@@ -6,24 +6,8 @@
   <meta name="referrer" content="strict-origin-when-cross-origin" />
   <title>Prescrição Memed</title>
   <style>
-    html, body {
-      margin: 0;
-      padding: 0;
-      height: 100%;
-      width: 100%;
-      overflow: hidden;
-    }
-    #loading {
-      padding: 20px;
-      color: #555;
-      font-family: Arial, sans-serif;
-    }
-    #error {
-      display:none; padding:12px; border-radius:6px;
-      background:#ffebee; border:1px solid #ef5350; color:#c62828;
-      white-space: pre-wrap;
-      font-family: Arial, sans-serif;
-    }
+    #loading { padding: 20px; color: #555; font-family: Arial, sans-serif; }
+    #error { display:none; padding:12px; background:#ffebee; color:#c62828; font-family: Arial, sans-serif; }
   </style>
 </head>
 <body>
@@ -33,7 +17,7 @@
   <script>
     // ====== CONFIG (produção) ======
     const TOKEN_ENDPOINT = "https://memed-api.raeclinicadigital.com/api/token";
-    const MEMED_SCRIPT_URL = "https://partners.memed.com.br/integration.js";
+    const MEMED_SCRIPT_URL = "https://integrations.memed.com.br/modulos/plataforma.sinapse-prescricao/build/sinapse-prescricao.min.js";
 
     // ====== Helpers ======
     function qs(k){ return new URLSearchParams(location.search).get(k); }
