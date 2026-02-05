@@ -134,8 +134,8 @@
           document.getElementById("loading").style.display = "none";
           MdHub.module.show("plataforma.prescricao");
 
-          // Safari: Envia prescrição via postMessage para a janela pai (se aberto via window.open)
-          MdSinapsePrescricao.event.add("prescricaoImpressa", function(prescriptionData) {
+          // Captura evento de prescrição conforme documentação Memed
+          MdHub.event.add("prescricaoImpressa", function(prescriptionData) {
             console.log("[github index.html] prescricaoImpressa recebido:", prescriptionData);
 
             // Tenta extrair medicamentos de vários caminhos possíveis
