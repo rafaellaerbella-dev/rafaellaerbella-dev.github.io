@@ -35,10 +35,9 @@
       e.textContent = msg;
     }
 
-    async function getToken(prescritorId){
-      const url = `${TOKEN_ENDPOINT}?prescritorId=${encodeURIComponent(prescritorId)}`;
-
-      const r = await fetch(url, {
+    async function getToken(){
+      // Chama endpoint sem prescritorId - o backend usa o default
+      const r = await fetch(TOKEN_ENDPOINT, {
         method: "GET",
         headers: { "Accept": "application/json" },
         cache: "no-store",
@@ -102,12 +101,9 @@
         }
       }
 
-      const prescritorId = qs("prescritorId");
-      if (!prescritorId) return showError("Falta ?prescritorId=<id>");
-
       let token;
       try {
-        token = await getToken(prescritorId);
+        token = await getToken();
       } catch (e) {
         return showError(e.message || String(e));
       }
