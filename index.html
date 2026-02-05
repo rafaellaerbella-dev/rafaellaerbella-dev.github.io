@@ -101,11 +101,14 @@
         }
       }
 
-      let token;
-      try {
-        token = await getToken();
-      } catch (e) {
-        return showError(e.message || String(e));
+      // Token pode vir via URL (quando aberto pelo SPA) ou busca da API
+      let token = qs("token");
+      if (!token) {
+        try {
+          token = await getToken();
+        } catch (e) {
+          return showError("Token não fornecido e não foi possível obter: " + (e.message || String(e)));
+        }
       }
 
       // Injeta o script da Memed (produção)
